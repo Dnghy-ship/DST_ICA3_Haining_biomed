@@ -16,6 +16,12 @@
                     Dashboard <span class="sr-only">(current)</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class='nav-link ${param.active == "counter" ? "active" : ""}' href="<%=request.getContextPath()%>/counter">
+                    <span data-feather="bar-chart-2"></span>
+                    Visitor Counter
+                </a>
+            </li>
         </ul>
 
         <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
