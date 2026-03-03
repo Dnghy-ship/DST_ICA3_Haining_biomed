@@ -41,7 +41,9 @@
     </style>
 </head>
 <body>
-<jsp:include page="head.jsp" />
+<nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+    <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Precision Medicine Matching System</a>
+</nav>
 
 <div class="container-fluid">
     <div class="row">
@@ -55,6 +57,11 @@
             </div>
             <div class="table-responsive">
                 Welcome to use Precision Medicine Matching System
+            </div>
+            <div class="mt-3">
+                <a href="<%=request.getContextPath()%>/counter" class="btn btn-outline-primary">
+                    &#128202; Visitor Counter Demo (Week 3 Practical)
+                </a>
             </div>
         </main>
     </div>
