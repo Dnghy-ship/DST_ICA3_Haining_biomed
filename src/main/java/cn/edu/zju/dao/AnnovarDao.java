@@ -8,7 +8,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 
 public class AnnovarDao extends BaseDao {
@@ -63,5 +65,25 @@ public class AnnovarDao extends BaseDao {
             }
         });
         return genes;
+    }
+
+    /**
+     * 统计每个样本的变异数量，返回 sample_id -> 变异数量 的映射
+     */
+    public Map<Integer, Integer> countVariantsBySample() {
+        String sql = "select sample_id, count(*) as cnt from annovar group by sample_id";
+        Map<Integer, Integer> counts = new HashMap<>();
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                ResultSet resultSet = preparedStatement.executeQuery();
+                while (resultSet.next()) {
+                    counts.put(resultSet.getInt("sample_id"), resultSet.getInt("cnt"));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        return counts;
     }
 }

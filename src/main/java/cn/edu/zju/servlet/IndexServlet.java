@@ -1,5 +1,9 @@
 package cn.edu.zju.servlet;;
 
+import cn.edu.zju.dao.DosingGuidelineDao;
+import cn.edu.zju.dao.DrugDao;
+import cn.edu.zju.dao.DrugLabelDao;
+import cn.edu.zju.dao.SampleDao;
 import cn.edu.zju.filter.AuthenticationFilter;
 
 import javax.servlet.ServletException;
@@ -23,6 +27,26 @@ public class IndexServlet extends HttpServlet {
         while (attributeNames.hasMoreElements()) {
             System.out.println(attributeNames.nextElement());
         }
+
+        // 加载系统统计数据
+        try {
+            DrugDao drugDao = new DrugDao();
+            DrugLabelDao drugLabelDao = new DrugLabelDao();
+            DosingGuidelineDao dosingGuidelineDao = new DosingGuidelineDao();
+            SampleDao sampleDao = new SampleDao();
+
+            request.setAttribute("totalDrugs", drugDao.countAll("drug"));
+            request.setAttribute("totalDrugLabels", drugLabelDao.countAll("drug_label"));
+            request.setAttribute("totalDosingGuidelines", dosingGuidelineDao.countAll("dosing_guideline"));
+            request.setAttribute("totalSamples", sampleDao.countAll("sample"));
+        } catch (Exception e) {
+            // 数据库不可用时设置默认值
+            request.setAttribute("totalDrugs", 0);
+            request.setAttribute("totalDrugLabels", 0);
+            request.setAttribute("totalDosingGuidelines", 0);
+            request.setAttribute("totalSamples", 0);
+        }
+
         request.getRequestDispatcher("/views/index.jsp").forward(request, response);
     }
 }
