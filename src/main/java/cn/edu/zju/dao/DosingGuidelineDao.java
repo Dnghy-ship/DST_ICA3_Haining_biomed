@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DosingGuidelineDao extends BaseDao {
 
@@ -40,6 +41,7 @@ public class DosingGuidelineDao extends BaseDao {
         });
 
     }
+
     public List<DosingGuideline> findAll() {
         List<DosingGuideline> dosingGuidelines = new ArrayList<>();
         DBUtils.execSQL(connection -> {
@@ -66,4 +68,83 @@ public class DosingGuidelineDao extends BaseDao {
         return dosingGuidelines;
     }
 
+    /**
+     * Count dosing guidelines matching optional search term (matches name, source, or summary_markdown).
+     */
+    public int count(String q) {
+        AtomicInteger total = new AtomicInteger(0);
+        String pattern = buildLikePattern(q);
+        DBUtils.execSQL(connection -> {
+            try {
+                String sql = (pattern != null)
+                        ? "select count(*) from dosing_guideline where lower(name) like lower(?)"
+                          + " or lower(source) like lower(?)"
+                          + " or lower(summary_markdown) like lower(?)"
+                        : "select count(*) from dosing_guideline";
+                PreparedStatement ps = connection.prepareStatement(sql);
+                if (pattern != null) {
+                    ps.setString(1, pattern);
+                    ps.setString(2, pattern);
+                    ps.setString(3, pattern);
+                }
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    total.set(rs.getInt(1));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return total.get();
+    }
+
+    /**
+     * Return a page of dosing guidelines.
+     *
+     * @param q      optional search term (partial match on name, source, or summary_markdown)
+     * @param offset 0-based row offset
+     * @param limit  max rows to return
+     */
+    public List<DosingGuideline> findPage(String q, int offset, int limit) {
+        List<DosingGuideline> dosingGuidelines = new ArrayList<>();
+        String pattern = buildLikePattern(q);
+        String whereClause = (pattern != null)
+                ? "WHERE lower(name) like lower(?)"
+                  + " or lower(source) like lower(?)"
+                  + " or lower(summary_markdown) like lower(?)"
+                : "";
+        String sql = "select id,obj_cls,name,recommendation,drug_id,source,summary_markdown,text_markdown,raw"
+                + " from dosing_guideline " + whereClause + " ORDER BY id LIMIT ?,?";
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement ps = connection.prepareStatement(sql);
+                int idx = 1;
+                if (pattern != null) {
+                    ps.setString(idx++, pattern);
+                    ps.setString(idx++, pattern);
+                    ps.setString(idx++, pattern);
+                }
+                ps.setInt(idx++, offset);
+                ps.setInt(idx, limit);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    String id = rs.getString("id");
+                    String objCls = rs.getString("obj_cls");
+                    String name = rs.getString("name");
+                    boolean recommendation = rs.getBoolean("recommendation");
+                    String drugId = rs.getString("drug_id");
+                    String source = rs.getString("source");
+                    String summaryMarkdown = rs.getString("summary_markdown");
+                    String textMarkdown = rs.getString("text_markdown");
+                    String raw = rs.getString("raw");
+                    dosingGuidelines.add(new DosingGuideline(id, objCls, name, recommendation, drugId, source, summaryMarkdown, textMarkdown, raw));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return dosingGuidelines;
+    }
+
 }
+

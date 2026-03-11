@@ -1,8 +1,8 @@
 package cn.edu.zju.servlet;
 
-import cn.edu.zju.bean.DrugLabel;
 import cn.edu.zju.bean.Page;
-import cn.edu.zju.dao.DrugLabelDao;
+import cn.edu.zju.bean.Sample;
+import cn.edu.zju.dao.SampleDao;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -12,8 +12,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(name = "DrugLabelServlet", urlPatterns = "/drugLabels")
-public class DrugLabelServlet extends HttpServlet {
+@WebServlet(name = "SamplesServlet", urlPatterns = "/samples")
+public class SamplesServlet extends HttpServlet {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 100;
@@ -22,26 +22,24 @@ public class DrugLabelServlet extends HttpServlet {
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
         String q     = RequestParamUtils.trimOrNull(request.getParameter("q"));
         int pageSize = RequestParamUtils.parsePositiveInt(request.getParameter("pageSize"), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
         int page     = RequestParamUtils.parsePositiveInt(request.getParameter("page"), 1, Integer.MAX_VALUE);
 
-        DrugLabelDao drugLabelDao = new DrugLabelDao();
-        int totalCount = drugLabelDao.count(q);
+        SampleDao sampleDao = new SampleDao();
+        int totalCount = sampleDao.count(q);
         int totalPages = (totalCount == 0) ? 1 : (int) Math.ceil((double) totalCount / pageSize);
         page = Math.min(page, totalPages);
 
         int offset = (page - 1) * pageSize;
-        List<DrugLabel> items = drugLabelDao.findPage(q, offset, pageSize);
+        List<Sample> items = sampleDao.findPage(q, offset, pageSize);
 
-        Page<DrugLabel> pageObj = new Page<>(items, page, pageSize, totalCount);
+        Page<Sample> pageObj = new Page<>(items, page, pageSize, totalCount);
 
         request.setAttribute("page", pageObj);
         request.setAttribute("q", q == null ? "" : q);
-        request.getRequestDispatcher("/views/drug_labels.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/samples.jsp").forward(request, response);
     }
 
 }
-
 

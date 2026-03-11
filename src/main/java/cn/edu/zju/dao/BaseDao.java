@@ -30,4 +30,14 @@ public abstract class BaseDao {
         });
         return exists.get();
     }
+
+    /**
+     * Convert a search term to a SQL LIKE pattern with {@code %} wildcards.
+     * Returns {@code null} when q is blank (meaning "no filter").
+     * Escapes {@code %} and {@code _} literals in the input to prevent accidental wildcards.
+     */
+    protected static String buildLikePattern(String q) {
+        if (q == null || q.trim().isEmpty()) return null;
+        return "%" + q.trim().replace("%", "\\%").replace("_", "\\_") + "%";
+    }
 }

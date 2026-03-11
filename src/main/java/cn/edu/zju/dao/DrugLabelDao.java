@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DrugLabelDao extends BaseDao {
 
@@ -70,4 +71,81 @@ public class DrugLabelDao extends BaseDao {
         });
         return drugLabels;
     }
+
+    /**
+     * Count drug labels matching the optional search term (matches source or summary_markdown).
+     */
+    public int count(String q) {
+        AtomicInteger total = new AtomicInteger(0);
+        String pattern = buildLikePattern(q);
+        DBUtils.execSQL(connection -> {
+            try {
+                String sql = (pattern != null)
+                        ? "select count(*) from drug_label where lower(source) like lower(?) or lower(summary_markdown) like lower(?)"
+                        : "select count(*) from drug_label";
+                PreparedStatement ps = connection.prepareStatement(sql);
+                if (pattern != null) {
+                    ps.setString(1, pattern);
+                    ps.setString(2, pattern);
+                }
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    total.set(rs.getInt(1));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return total.get();
+    }
+
+    /**
+     * Return a page of drug labels.
+     *
+     * @param q      optional search term (partial match on source or summary_markdown)
+     * @param offset 0-based row offset
+     * @param limit  max rows to return
+     */
+    public List<DrugLabel> findPage(String q, int offset, int limit) {
+        List<DrugLabel> drugLabels = new ArrayList<>();
+        String pattern = buildLikePattern(q);
+        String whereClause = (pattern != null)
+                ? "WHERE lower(source) like lower(?) or lower(summary_markdown) like lower(?)"
+                : "";
+        String sql = "select id, name, obj_cls, alternate_drug_available, dosing_information,"
+                + " prescribing_markdown, source, text_markdown, summary_markdown, raw, drug_id"
+                + " from drug_label " + whereClause + " ORDER BY id LIMIT ?,?";
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement ps = connection.prepareStatement(sql);
+                int idx = 1;
+                if (pattern != null) {
+                    ps.setString(idx++, pattern);
+                    ps.setString(idx++, pattern);
+                }
+                ps.setInt(idx++, offset);
+                ps.setInt(idx, limit);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    String id = rs.getString("id");
+                    String name = rs.getString("name");
+                    String objCls = rs.getString("obj_cls");
+                    boolean alternDrug = rs.getBoolean("alternate_drug_available");
+                    boolean dosing = rs.getBoolean("dosing_information");
+                    String prescribing = rs.getString("prescribing_markdown");
+                    String source = rs.getString("source");
+                    String text = rs.getString("text_markdown");
+                    String summary = rs.getString("summary_markdown");
+                    String raw = rs.getString("raw");
+                    String drugId = rs.getString("drug_id");
+                    drugLabels.add(new DrugLabel(id, name, objCls, alternDrug, dosing, prescribing, source, text, summary, raw, drugId));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return drugLabels;
+    }
+
 }
+

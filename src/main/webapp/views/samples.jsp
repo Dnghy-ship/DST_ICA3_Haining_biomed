@@ -1,9 +1,5 @@
 <%--
-  Created by IntelliJ IDEA.
-  User: hello
-  Date: 2019-12-3
-  Time: 15:37
-  To change this template use File | Settings | File Templates.
+  Samples page: lists uploaded samples with variant count, search by uploaded_by, pagination.
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
@@ -14,16 +10,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <meta name="generator" content="">
-    <title>Dashboard Template · Bootstrap</title>
+    <title>Samples · Precision Medicine</title>
 
-    <!-- Bootstrap core CSS -->
     <link href="<%=request.getContextPath()%>/static/bootstrap/css/bootstrap.css" rel="stylesheet">
     <script src="<%=request.getContextPath()%>/static/jquery/jquery-3.4.1.js"></script>
     <script src="<%=request.getContextPath()%>/static/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom styles for this template -->
     <link href="<%=request.getContextPath()%>/static/css/app.css" rel="stylesheet">
     <style>
         .bd-placeholder-img { font-size: 1.125rem; text-anchor: middle; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
@@ -36,27 +27,30 @@
 <div class="container-fluid">
     <div class="row">
         <jsp:include page="nav.jsp">
-            <jsp:param name="active" value="dosing_guideline" />
+            <jsp:param name="active" value="samples" />
         </jsp:include>
 
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h2>Dosing Guidelines
+                <h2>Uploaded Samples
                     <small class="text-muted" style="font-size:0.6em;">&nbsp;(${page.totalCount} total)</small>
                 </h2>
+                <a href="<%=request.getContextPath()%>/matchingIndex" class="btn btn-sm btn-primary">
+                    &#x2B06; Upload New Sample
+                </a>
             </div>
 
-            <p class="text-muted">CPIC and other clinical pharmacogenomics dosing guidelines from PharmGKB, describing gene-specific dosing recommendations.</p>
+            <p class="text-muted">Each row represents a patient sample uploaded via ANNOVAR. Click "Upload New Sample" to run a new pharmacogenomic analysis.</p>
 
             <%-- Search bar --%>
-            <form method="get" action="dosingGuideline" class="form-inline mb-3">
+            <form method="get" action="samples" class="form-inline mb-3">
                 <input type="hidden" name="pageSize" value="${page.pageSize}" />
                 <div class="input-group">
-                    <input type="text" name="q" class="form-control" placeholder="Search name, source or summary…" value="${q}">
+                    <input type="text" name="q" class="form-control" placeholder="Search by uploaded by…" value="${q}">
                     <div class="input-group-append">
                         <button class="btn btn-outline-secondary" type="submit">Search</button>
                         <c:if test="${not empty q}">
-                            <a class="btn btn-outline-danger" href="dosingGuideline?pageSize=${page.pageSize}">Clear</a>
+                            <a class="btn btn-outline-danger" href="samples?pageSize=${page.pageSize}">Clear</a>
                         </c:if>
                     </div>
                 </div>
@@ -66,36 +60,25 @@
                 <table class="table table-striped table-sm">
                     <thead class="thead-dark">
                     <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Recommendation</th>
-                        <th>Drug Id</th>
-                        <th>Source</th>
-                        <th>Summary</th>
+                        <th>Sample ID</th>
+                        <th>Uploaded By</th>
+                        <th>Created At</th>
+                        <th>Variant Count</th>
                     </tr>
                     </thead>
                     <tbody>
                     <c:forEach items="${page.items}" var="item">
                         <tr>
                             <td>${item.id}</td>
-                            <td>${item.name}</td>
+                            <td>${item.uploadedBy}</td>
+                            <td>${item.createdAt}</td>
                             <td>
-                                <c:choose>
-                                    <c:when test="${item.recommendation}">
-                                        <span class="badge badge-success">Yes</span>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="badge badge-secondary">No</span>
-                                    </c:otherwise>
-                                </c:choose>
+                                <span class="badge badge-info">${item.variantCount}</span>
                             </td>
-                            <td>${item.drugId}</td>
-                            <td>${item.source}</td>
-                            <td>${item.summaryMarkdown}</td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty page.items}">
-                        <tr><td colspan="6" class="text-center text-muted">No dosing guidelines found.</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted">No samples found. <a href="<%=request.getContextPath()%>/matchingIndex">Upload one now.</a></td></tr>
                     </c:if>
                     </tbody>
                 </table>
@@ -103,20 +86,20 @@
 
             <%-- Pagination UI --%>
             <c:if test="${page.totalPages > 1}">
-            <nav aria-label="Dosing guidelines pagination">
+            <nav aria-label="Samples pagination">
                 <ul class="pagination flex-wrap">
                     <li class="page-item ${page.hasPrev ? '' : 'disabled'}">
-                        <a class="page-link" href="dosingGuideline?q=${q}&pageSize=${page.pageSize}&page=${page.page - 1}">Prev</a>
+                        <a class="page-link" href="samples?q=${q}&pageSize=${page.pageSize}&page=${page.page - 1}">Prev</a>
                     </li>
                     <c:set var="startP" value="${page.page - 4 < 1 ? 1 : page.page - 4}" />
                     <c:set var="endP"   value="${page.page + 4 > page.totalPages ? page.totalPages : page.page + 4}" />
                     <c:forEach var="p" begin="${startP}" end="${endP}">
                         <li class="page-item ${p == page.page ? 'active' : ''}">
-                            <a class="page-link" href="dosingGuideline?q=${q}&pageSize=${page.pageSize}&page=${p}">${p}</a>
+                            <a class="page-link" href="samples?q=${q}&pageSize=${page.pageSize}&page=${p}">${p}</a>
                         </li>
                     </c:forEach>
                     <li class="page-item ${page.hasNext ? '' : 'disabled'}">
-                        <a class="page-link" href="dosingGuideline?q=${q}&pageSize=${page.pageSize}&page=${page.page + 1}">Next</a>
+                        <a class="page-link" href="samples?q=${q}&pageSize=${page.pageSize}&page=${page.page + 1}">Next</a>
                     </li>
                 </ul>
             </nav>
@@ -128,4 +111,3 @@
 </div>
 </body>
 </html>
-

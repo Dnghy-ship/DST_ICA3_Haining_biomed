@@ -6,6 +6,7 @@ public class Sample {
     private int id;
     private Date createdAt;
     private String uploadedBy;
+    private int variantCount;
 
     public Sample() {
     }
@@ -14,6 +15,13 @@ public class Sample {
         this.id = id;
         this.createdAt = createdAt;
         this.uploadedBy = uploadedBy;
+    }
+
+    public Sample(int id, Date createdAt, String uploadedBy, int variantCount) {
+        this.id = id;
+        this.createdAt = createdAt;
+        this.uploadedBy = uploadedBy;
+        this.variantCount = variantCount;
     }
 
     public int getId() {
@@ -38,5 +46,13 @@ public class Sample {
 
     public void setUploadedBy(String uploadedBy) {
         this.uploadedBy = uploadedBy;
+    }
+
+    public int getVariantCount() {
+        return variantCount;
+    }
+
+    public void setVariantCount(int variantCount) {
+        this.variantCount = variantCount;
     }
 }
