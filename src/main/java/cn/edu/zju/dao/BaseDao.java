@@ -8,10 +8,31 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class BaseDao {
 
     private static final Logger log = LoggerFactory.getLogger(BaseDao.class);
+
+    /**
+     * 统计指定表的总记录数
+     */
+    public int countAll(String tableName) {
+        AtomicInteger count = new AtomicInteger(0);
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        String.format("select count(*) from %s", tableName));
+                ResultSet resultSet = preparedStatement.executeQuery();
+                if (resultSet.next()) {
+                    count.set(resultSet.getInt(1));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return count.get();
+    }
 
     public boolean existsById(String id, String tableName) {
         AtomicBoolean exists = new AtomicBoolean(false);

@@ -55,13 +55,21 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h2>Drug Labels</h2>
             </div>
+
+            <div class="alert alert-info" role="alert">
+                <strong>FDA 药物标签</strong> &mdash;
+                本页面展示 FDA 批准药物说明书中的药物基因组学相关信息，
+                包括基因检测建议、剂量调整指导以及处方注意事项。
+                "含剂量信息" 表示该标签包含基于基因型的具体剂量调整说明。
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-striped table-sm">
                     <thead>
                     <tr>
                         <th>#</th>
                         <th>Source</th>
-                        <th>Dosing Information</th>
+                        <th>含剂量信息</th>
                         <th>Summary Markdown</th>
                     </tr>
                     </thead>
@@ -70,11 +78,19 @@
                         <tr>
                             <td>${item.id}</td>
                             <td>${item.source}</td>
-                            <td>${item.dosingInformation}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${item.dosingInformation}">
+                                        <span class="badge badge-success">是</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="badge badge-secondary">否</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
                             <td>${item.summaryMarkdown}</td>
                         </tr>
                     </c:forEach>
-
                     </tbody>
                 </table>
             </div>

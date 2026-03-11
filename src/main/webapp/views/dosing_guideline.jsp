@@ -55,13 +55,21 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h2>Dosing Guidelines</h2>
             </div>
+
+            <div class="alert alert-info" role="alert">
+                <strong>药物基因组学用药指南</strong> &mdash;
+                本页面展示 CPIC、DPWG 等权威机构发布的药物基因组学用药指南，
+                为临床医生提供基于患者基因型的个性化用药建议。
+                "含推荐意见" 表示该指南包含具体的用药推荐。
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-striped table-sm">
                     <thead>
                     <tr>
                         <th>#</th>
                         <th>Name</th>
-                        <th>Recommendation</th>
+                        <th>含推荐意见</th>
                         <th>Drug Id</th>
                         <th>Source</th>
                         <th>Summary Markdown</th>
@@ -72,13 +80,21 @@
                         <tr>
                             <td>${item.id}</td>
                             <td>${item.name}</td>
-                            <td>${item.recommendation}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${item.recommendation}">
+                                        <span class="badge badge-success">是</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="badge badge-secondary">否</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
                             <td>${item.drugId}</td>
                             <td>${item.source}</td>
                             <td>${item.summaryMarkdown}</td>
                         </tr>
                     </c:forEach>
-
                     </tbody>
                 </table>
             </div>
