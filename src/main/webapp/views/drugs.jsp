@@ -70,7 +70,14 @@
                         <tr>
                             <td>${item.id}</td>
                             <td>${item.name}</td>
-                            <td>${item.drugUrl}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty item.drugUrl}">
+                                        <a href="${item.drugUrl}" target="_blank" rel="noopener noreferrer">${item.drugUrl}</a>
+                                    </c:when>
+                                    <c:otherwise>–</c:otherwise>
+                                </c:choose>
+                            </td>
                             <td>${item.biomarker}</td>
                         </tr>
                     </c:forEach>

@@ -40,6 +40,10 @@ public class DosingGuidelineDao extends BaseDao {
         });
 
     }
+    public int countAll() {
+        return super.countAll("dosing_guideline");
+    }
+
     public List<DosingGuideline> findAll() {
         List<DosingGuideline> dosingGuidelines = new ArrayList<>();
         DBUtils.execSQL(connection -> {

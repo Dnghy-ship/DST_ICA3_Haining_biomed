@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AnnovarDao extends BaseDao {
 
@@ -44,6 +45,66 @@ public class AnnovarDao extends BaseDao {
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Returns the total variant count for the given sample.
+     *
+     * Performance note: adding an index on sample_id improves this query significantly
+     * for large datasets.  Suggested DDL (run once after schema creation):
+     *   CREATE INDEX idx_annovar_sample_id ON annovar (sample_id);
+     */
+    public int countVariantsBySample(int sampleId) {
+        AtomicInteger count = new AtomicInteger(0);
+        String sql = "SELECT COUNT(*) FROM annovar WHERE sample_id = ?";
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ps.setInt(1, sampleId);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    count.set(rs.getInt(1));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        return count.get();
+    }
+
+    /**
+     * Returns a map of sample_id to variant count for all provided sample IDs
+     * in a single query, avoiding an N+1 problem.
+     *
+     * @param sampleIds list of sample IDs to query; must not be empty
+     * @return map from sample_id to count (missing entries imply count = 0)
+     */
+    public java.util.Map<Integer, Integer> countVariantsBySamples(java.util.List<Integer> sampleIds) {
+        java.util.Map<Integer, Integer> result = new java.util.LinkedHashMap<>();
+        if (sampleIds == null || sampleIds.isEmpty()) {
+            return result;
+        }
+        StringBuilder sb = new StringBuilder("SELECT sample_id, COUNT(*) FROM annovar WHERE sample_id IN (");
+        for (int i = 0; i < sampleIds.size(); i++) {
+            sb.append(i == 0 ? "?" : ",?");
+        }
+        sb.append(") GROUP BY sample_id");
+        String sql = sb.toString();
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement ps = connection.prepareStatement(sql);
+                for (int i = 0; i < sampleIds.size(); i++) {
+                    ps.setInt(i + 1, sampleIds.get(i));
+                }
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    result.put(rs.getInt(1), rs.getInt(2));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        return result;
     }
 
     public List<String> getRefGenes(int sampleId) {

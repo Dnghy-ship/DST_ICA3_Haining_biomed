@@ -36,6 +36,10 @@ public class DrugDao extends BaseDao {
 
     }
 
+    public int countAll() {
+        return super.countAll("drug");
+    }
+
     public List<Drug> findAll() {
         List<Drug> drugs = new ArrayList<>();
         DBUtils.execSQL(connection -> {
