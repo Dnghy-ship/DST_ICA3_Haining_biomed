@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class AnnovarDao extends BaseDao {
 
@@ -44,6 +45,22 @@ public class AnnovarDao extends BaseDao {
                 e.printStackTrace();
             }
         });
+    }
+
+    public long countAll() {
+        AtomicLong count = new AtomicLong();
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement ps = connection.prepareStatement("select count(*) from annovar");
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    count.set(rs.getLong(1));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        return count.get();
     }
 
     public List<String> getRefGenes(int sampleId) {

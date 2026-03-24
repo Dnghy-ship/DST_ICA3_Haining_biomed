@@ -17,54 +17,44 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <meta name="generator" content="">
-    <title>Dashboard Template · Bootstrap</title>
+    <title>Drugs · Precision Medicine Matching System</title>
 
     <!-- Bootstrap core CSS -->
     <link href="<%=request.getContextPath()%>/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
     <script src="<%=request.getContextPath()%>/static/jquery/jquery-3.4.1.js"></script>
     <script src="<%=request.getContextPath()%>/static/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
     <!-- Custom styles for this template -->
     <link href="<%=request.getContextPath()%>/static/css/app.css" rel="stylesheet">
-    <style>
-        .bd-placeholder-img {
-            font-size: 1.125rem;
-            text-anchor: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        @media (min-width: 768px) {
-            .bd-placeholder-img-lg {
-                font-size: 3.5rem;
-            }
-        }
-    </style>
 </head>
 <body>
 <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
     <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Precision Medicine Matching System</a>
-
 </nav>
 
 <div class="container-fluid">
     <div class="row">
-        <jsp:include page="nav.jsp" >
-            <jsp:param name="active" value="drugs" />
+        <jsp:include page="nav.jsp">
+            <jsp:param name="active" value="drugs"/>
         </jsp:include>
 
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h2>Drugs</h2>
+                <h2>Drugs
+                    <span class="badge badge-secondary ml-2">${drugs.size()} total</span>
+                </h2>
             </div>
             <div class="table-responsive">
-                <table class="table table-striped table-sm">
-                    <thead>
+                <table id="drugsTable" class="table table-striped table-sm table-hover">
+                    <thead class="thead-light">
                     <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Drug Url</th>
+                        <th>ID</th>
+                        <th>Drug Name</th>
+                        <th>Drug URL</th>
                         <th>Biomarker</th>
                     </tr>
                     </thead>
@@ -74,15 +64,31 @@
                             <td>${item.id}</td>
                             <td>${item.name}</td>
                             <td>${item.drugUrl}</td>
-                            <td>${item.biomarker}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${item.biomarker}">
+                                        <span class="badge badge-success">Yes</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="badge badge-secondary">No</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
                         </tr>
                     </c:forEach>
-
                     </tbody>
                 </table>
             </div>
         </main>
     </div>
 </div>
+<script>
+    $(document).ready(function () {
+        $('#drugsTable').DataTable({
+            pageLength: 25
+        });
+    });
+</script>
 </body>
 </html>
+

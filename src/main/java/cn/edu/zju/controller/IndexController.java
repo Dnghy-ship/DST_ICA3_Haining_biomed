@@ -1,5 +1,7 @@
 package cn.edu.zju.controller;
 
+import cn.edu.zju.bean.DashboardStats;
+import cn.edu.zju.service.DashboardService;
 import cn.edu.zju.servlet.DispatchServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,12 +15,19 @@ public class IndexController {
 
     private static final Logger log = LoggerFactory.getLogger(IndexController.class);
 
+    private final DashboardService dashboardService = new DashboardService();
+
     public void register(DispatchServlet.Dispatcher dispatcher) {
         dispatcher.registerGetMapping("/", this::index);
     }
 
     public void index(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            DashboardStats stats = dashboardService.getDashboardStats();
+            request.setAttribute("stats", stats);
+        } catch (Exception e) {
+            log.warn("Could not load dashboard stats", e);
+        }
         request.getRequestDispatcher("/views/index.jsp").forward(request, response);
-
     }
 }

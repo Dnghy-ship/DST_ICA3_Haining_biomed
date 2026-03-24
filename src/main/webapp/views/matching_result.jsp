@@ -1,9 +1,5 @@
 <%--
-  Created by IntelliJ IDEA.
-  User: hello
-  Date: 2019-12-3
-  Time: 15:37
-  To change this template use File | Settings | File Templates.
+  Matching Result (Saved) - Displays previously saved matching results for a sample.
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
@@ -17,7 +13,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <meta name="generator" content="">
-    <title>Matching Result · Precision Medicine Matching System</title>
+    <title>Saved Matching Result · Precision Medicine Matching System</title>
 
     <!-- Bootstrap core CSS -->
     <link href="<%=request.getContextPath()%>/static/bootstrap/css/bootstrap.css" rel="stylesheet">
@@ -39,23 +35,27 @@
 <div class="container-fluid">
     <div class="row">
         <jsp:include page="nav.jsp">
-            <jsp:param name="active" value="matching_index"/>
+            <jsp:param name="active" value="samples"/>
         </jsp:include>
 
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h2>Matching Result</h2>
-                <a href="<%=request.getContextPath()%>/samples" class="btn btn-sm btn-outline-secondary">← Back to Samples</a>
+                <h2>Saved Matching Report</h2>
+                <div>
+                    <a href="<%=request.getContextPath()%>/matching?sampleId=${sample.id}"
+                       class="btn btn-sm btn-outline-primary mr-2">Re-run Matching</a>
+                    <a href="<%=request.getContextPath()%>/samples" class="btn btn-sm btn-outline-secondary">← Back to Samples</a>
+                </div>
             </div>
 
             <!-- Sample Info -->
-            <div class="alert alert-info" role="alert">
+            <div class="alert alert-secondary" role="alert">
                 <h4 class="alert-heading">Sample Info #${sample.id}</h4>
                 <div><strong>Uploaded at:</strong> ${sample.createdAt}</div>
                 <div><strong>Uploaded by:</strong> ${sample.uploadedBy}</div>
             </div>
 
-            <!-- Matched Drug Labels -->
+            <!-- Matched Drug Labels (Saved) -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">Matched Drug Labels
                     <span class="badge badge-secondary ml-2">${matched.size()} result(s)</span>
@@ -64,16 +64,16 @@
 
             <c:choose>
                 <c:when test="${not empty matched}">
-                    <div class="accordion" id="matchingAccordion">
+                    <div class="accordion" id="savedMatchingAccordion">
                         <c:forEach items="${matched}" var="item" varStatus="loop">
                             <div class="card mb-1">
-                                <div class="card-header p-0" id="heading${loop.index}">
+                                <div class="card-header p-0" id="savedHeading${loop.index}">
                                     <button class="btn btn-link btn-block text-left px-3 py-2 d-flex align-items-center justify-content-between"
                                             type="button"
                                             data-toggle="collapse"
-                                            data-target="#collapse${loop.index}"
+                                            data-target="#savedCollapse${loop.index}"
                                             aria-expanded="${loop.index == 0 ? 'true' : 'false'}"
-                                            aria-controls="collapse${loop.index}">
+                                            aria-controls="savedCollapse${loop.index}">
                                         <span>
                                             <strong>${item.name}</strong>
                                             <c:forEach items="${item.matchedGenes}" var="gene">
@@ -96,10 +96,10 @@
                                         </span>
                                     </button>
                                 </div>
-                                <div id="collapse${loop.index}"
+                                <div id="savedCollapse${loop.index}"
                                      class="collapse ${loop.index == 0 ? 'show' : ''}"
-                                     aria-labelledby="heading${loop.index}"
-                                     data-parent="#matchingAccordion">
+                                     aria-labelledby="savedHeading${loop.index}"
+                                     data-parent="#savedMatchingAccordion">
                                     <div class="card-body">
                                         <dl class="row mb-0">
                                             <dt class="col-sm-2">Source</dt>
@@ -120,7 +120,7 @@
                     </div>
                 </c:when>
                 <c:otherwise>
-                    <div class="alert alert-warning">No drug labels matched for this sample's variants.</div>
+                    <div class="alert alert-warning">No saved results found for this sample.</div>
                 </c:otherwise>
             </c:choose>
         </main>
@@ -128,4 +128,3 @@
 </div>
 </body>
 </html>
-
