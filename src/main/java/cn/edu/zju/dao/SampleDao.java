@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class SampleDao extends BaseDao {
@@ -43,6 +44,43 @@ public class SampleDao extends BaseDao {
                     String uploadedBy = resultSet.getString("uploaded_by");
                     Sample sample = new Sample(sampleId, createdAt, uploadedBy);
                     samples.add(sample);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        return samples;
+    }
+
+    public int count() {
+        AtomicInteger count = new AtomicInteger();
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement preparedStatement = connection.prepareStatement("select count(*) from sample");
+                ResultSet resultSet = preparedStatement.executeQuery();
+                if (resultSet.next()) {
+                    count.set(resultSet.getInt(1));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        return count.get();
+    }
+
+    public List<Sample> findRecent(int limit) {
+        List<Sample> samples = new ArrayList<>();
+        DBUtils.execSQL(connection -> {
+            try {
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "select id, created_at, uploaded_by from sample order by id desc limit ?");
+                preparedStatement.setInt(1, limit);
+                ResultSet resultSet = preparedStatement.executeQuery();
+                while (resultSet.next()) {
+                    int sampleId = resultSet.getInt("id");
+                    Date createdAt = new Date(resultSet.getTimestamp("created_at").getTime());
+                    String uploadedBy = resultSet.getString("uploaded_by");
+                    samples.add(new Sample(sampleId, createdAt, uploadedBy));
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
