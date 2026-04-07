@@ -49,7 +49,7 @@ public class AnnovarDao extends BaseDao {
                     }
                     String[] split = line.split("\\t");
                     if (split.length < 6) {
-                        throw new ArrayIndexOutOfBoundsException("Invalid annovar row, expected at least 6 columns");
+                        throw new ArrayIndexOutOfBoundsException("Invalid annovar row, expected at least 6 core columns");
                     }
                     corePs.setInt(1, sampleId);
                     corePs.setString(2, safeGet(split, CHR_INDEX));
@@ -239,6 +239,7 @@ public class AnnovarDao extends BaseDao {
     private static String buildRawDetailsJson(String[] split) {
         Map<String, String> details = new LinkedHashMap<>();
         details.put("_column_key_format", "annovar_col_<1-based-original-column-index>");
+        details.put("_scope", "stores long-tail columns only (from original column 6 onward), excluding gene_symbol/acmg_classification");
         for (int i = 5; i < split.length; i++) {
             if (i == GENE_SYMBOL_INDEX || i == ACMG_CLASSIFICATION_INDEX) {
                 continue;
