@@ -49,7 +49,7 @@ public class AnnovarDao extends BaseDao {
                     }
                     String[] split = line.split("\\t");
                     if (split.length < 6) {
-                        throw new ArrayIndexOutOfBoundsException("Invalid annovar row, expected at least 6 core columns");
+                        throw new ArrayIndexOutOfBoundsException("Invalid annovar row, expected at least 6 columns: chr, start_pos, end_pos, ref_allele, alt_allele, plus annotation fields");
                     }
                     corePs.setInt(1, sampleId);
                     corePs.setString(2, safeGet(split, CHR_INDEX));
@@ -191,7 +191,7 @@ public class AnnovarDao extends BaseDao {
                 "from variant_core vc " +
                 "join variant_annotation va on va.variant_id = vc.id " +
                 "where vc.sample_id = ? and va.gene_symbol is not null and va.gene_symbol <> ''";
-        List<String> geneColumns = new ArrayList<>();
+        List<String> geneSymbolFields = new ArrayList<>();
         DBUtils.execSQL(connection -> {
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setInt(1, sampleId);
@@ -199,7 +199,7 @@ public class AnnovarDao extends BaseDao {
                     while (rs.next()) {
                         String gene = nullableTrim(rs.getString(1));
                         if (gene != null) {
-                            geneColumns.add(gene);
+                            geneSymbolFields.add(gene);
                         }
                     }
                 }
@@ -209,7 +209,7 @@ public class AnnovarDao extends BaseDao {
         });
 
         LinkedHashSet<String> genes = new LinkedHashSet<>();
-        for (String geneColumn : geneColumns) {
+        for (String geneColumn : geneSymbolFields) {
             String[] splitGenes = geneColumn.split("[,;]");
             for (String gene : splitGenes) {
                 String trimmed = nullableTrim(gene);
@@ -238,8 +238,8 @@ public class AnnovarDao extends BaseDao {
 
     private static String buildRawDetailsJson(String[] split) {
         Map<String, String> details = new LinkedHashMap<>();
-        details.put("_column_key_format", "annovar_col_<1-based-original-column-index>");
-        details.put("_scope", "stores long-tail columns only (from original column 6 onward), excluding gene_symbol/acmg_classification");
+        details.put("__meta_column_key_format", "annovar_col_<1-based-original-column-index>");
+        details.put("__meta_scope", "stores long-tail columns only (from original column 6 onward), excluding gene_symbol/acmg_classification");
         for (int i = 5; i < split.length; i++) {
             if (i == GENE_SYMBOL_INDEX || i == ACMG_CLASSIFICATION_INDEX) {
                 continue;
