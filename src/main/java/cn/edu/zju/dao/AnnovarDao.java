@@ -30,6 +30,7 @@ public class AnnovarDao extends BaseDao {
     private static final int ALT_ALLELE_INDEX = 4;
     private static final int GENE_SYMBOL_INDEX = 6;
     private static final int ACMG_CLASSIFICATION_INDEX = 125;
+    private static final int BATCH_SIZE = 1000;
 
     public void save(int sampleId, String content) {
         String[] lines = content.split("\\r|\\n");
@@ -41,6 +42,7 @@ public class AnnovarDao extends BaseDao {
                  PreparedStatement annotationPs = connection.prepareStatement(insertAnnotation);
                  PreparedStatement bioDetailsPs = connection.prepareStatement(insertBioDetails)) {
                 connection.setAutoCommit(false);
+                int count = 0;
                 for (String line : lines) {
                     if (line == null || line.isBlank()) {
                         continue;
@@ -68,12 +70,20 @@ public class AnnovarDao extends BaseDao {
                     annotationPs.setInt(1, variantId);
                     annotationPs.setString(2, nullableTrim(safeGet(split, GENE_SYMBOL_INDEX)));
                     annotationPs.setString(3, nullableTrim(safeGet(split, ACMG_CLASSIFICATION_INDEX)));
-                    annotationPs.executeUpdate();
+                    annotationPs.addBatch();
 
                     bioDetailsPs.setInt(1, variantId);
                     bioDetailsPs.setString(2, buildRawDetailsJson(split));
-                    bioDetailsPs.executeUpdate();
+                    bioDetailsPs.addBatch();
+
+                    count++;
+                    if (count % BATCH_SIZE == 0) {
+                        annotationPs.executeBatch();
+                        bioDetailsPs.executeBatch();
+                    }
                 }
+                annotationPs.executeBatch();
+                bioDetailsPs.executeBatch();
                 connection.commit();
             } catch (SQLException e) {
                 try {
@@ -177,14 +187,30 @@ public class AnnovarDao extends BaseDao {
     }
 
     public List<String> getRefGenes(int sampleId) {
-        List<VariantCore> variants = findAnnotationsBySampleId(sampleId);
-        LinkedHashSet<String> genes = new LinkedHashSet<>();
-        for (VariantCore variant : variants) {
-            VariantAnnotation annotation = variant.getAnnotation();
-            if (annotation == null || annotation.getGeneSymbol() == null) {
-                continue;
+        String sql = "select distinct va.gene_symbol " +
+                "from variant_core vc " +
+                "join variant_annotation va on va.variant_id = vc.id " +
+                "where vc.sample_id = ? and va.gene_symbol is not null and va.gene_symbol <> ''";
+        List<String> geneColumns = new ArrayList<>();
+        DBUtils.execSQL(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, sampleId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String gene = nullableTrim(rs.getString(1));
+                        if (gene != null) {
+                            geneColumns.add(gene);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                log.error("Failed to load ref genes for sample {}", sampleId, e);
             }
-            String[] splitGenes = annotation.getGeneSymbol().split("[,;]");
+        });
+
+        LinkedHashSet<String> genes = new LinkedHashSet<>();
+        for (String geneColumn : geneColumns) {
+            String[] splitGenes = geneColumn.split("[,;]");
             for (String gene : splitGenes) {
                 String trimmed = nullableTrim(gene);
                 if (trimmed != null) {
@@ -212,11 +238,12 @@ public class AnnovarDao extends BaseDao {
 
     private static String buildRawDetailsJson(String[] split) {
         Map<String, String> details = new LinkedHashMap<>();
+        details.put("_column_key_format", "annovar_col_<1-based-original-column-index>");
         for (int i = 5; i < split.length; i++) {
             if (i == GENE_SYMBOL_INDEX || i == ACMG_CLASSIFICATION_INDEX) {
                 continue;
             }
-            details.put("field_" + (i + 1), split[i]);
+            details.put("annovar_col_" + (i + 1), split[i]);
         }
         return gson.toJson(details);
     }
