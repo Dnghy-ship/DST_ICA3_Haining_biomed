@@ -49,7 +49,7 @@ public class AnnovarDao extends BaseDao {
                     }
                     String[] split = line.split("\\t");
                     if (split.length < 6) {
-                        throw new ArrayIndexOutOfBoundsException("Invalid annovar row, expected at least 6 columns: chr, start_pos, end_pos, ref_allele, alt_allele, plus annotation fields");
+                        throw new ArrayIndexOutOfBoundsException("Invalid annovar row, expected at least 6 core columns: chr, start_pos, end_pos, ref_allele, alt_allele");
                     }
                     corePs.setInt(1, sampleId);
                     corePs.setString(2, safeGet(split, CHR_INDEX));
@@ -237,9 +237,12 @@ public class AnnovarDao extends BaseDao {
     }
 
     private static String buildRawDetailsJson(String[] split) {
-        Map<String, String> details = new LinkedHashMap<>();
-        details.put("__meta_column_key_format", "annovar_col_<1-based-original-column-index>");
-        details.put("__meta_scope", "stores long-tail columns only (from original column 6 onward), excluding gene_symbol/acmg_classification");
+        Map<String, Object> details = new LinkedHashMap<>();
+        Map<String, String> meta = new LinkedHashMap<>();
+        meta.put("column_key_format", "annovar_col_<1-based-original-column-index>");
+        meta.put("scope", "stores long-tail columns only (from original column 6 onward), excluding gene_symbol/acmg_classification");
+        details.put("_meta", meta);
+        // i starts at 5, which is original annovar column 6 in 1-based indexing.
         for (int i = 5; i < split.length; i++) {
             if (i == GENE_SYMBOL_INDEX || i == ACMG_CLASSIFICATION_INDEX) {
                 continue;
