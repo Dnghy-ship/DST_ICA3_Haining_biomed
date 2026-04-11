@@ -52,4 +52,18 @@ CREATE TABLE IF NOT EXISTS variant_bio_details
 CREATE INDEX idx_variant_core_sample_id_btree ON variant_core (sample_id);
 
 -- MySQL secondary index on InnoDB is non-clustered.
-CREATE INDEX idx_variant_annotation_gene_symbol ON variant_annotation (gene_symbol);
+-- Use prefix index to avoid "Specified key was too long" on utf8mb4 when gene_symbol is VARCHAR(1024).
+SET @gene_symbol_idx_exists := (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'variant_annotation'
+      AND index_name = 'idx_variant_annotation_gene_symbol'
+);
+SET @create_gene_symbol_idx_sql := IF(
+    @gene_symbol_idx_exists = 0,
+    'CREATE INDEX idx_variant_annotation_gene_symbol ON variant_annotation (gene_symbol(191))',
+    'SELECT 1'
+);
+PREPARE create_gene_symbol_idx_stmt FROM @create_gene_symbol_idx_sql;
+EXECUTE create_gene_symbol_idx_stmt;
+DEALLOCATE PREPARE create_gene_symbol_idx_stmt;
