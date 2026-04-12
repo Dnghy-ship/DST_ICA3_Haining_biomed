@@ -3,11 +3,17 @@ package cn.edu.zju.controller;
 import cn.edu.zju.bean.DrugLabel;
 import cn.edu.zju.bean.MatchedDrugLabel;
 import cn.edu.zju.bean.Sample;
+import cn.edu.zju.bean.VariantAnnotation;
+import cn.edu.zju.bean.VariantBioDetails;
+import cn.edu.zju.bean.VariantCore;
 import cn.edu.zju.dao.AnnovarDao;
 import cn.edu.zju.dao.DrugLabelDao;
 import cn.edu.zju.dao.MatchingResultDao;
 import cn.edu.zju.dao.SampleDao;
 import cn.edu.zju.servlet.DispatchServlet;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,13 +24,24 @@ import javax.servlet.http.Part;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class MatchingController {
 
     private static final Logger log = LoggerFactory.getLogger(MatchingController.class);
+    private static final Pattern EVIDENCE_LEVEL_1A = Pattern.compile("\\b(LEVEL\\s*1A|1A)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EVIDENCE_LEVEL_1B = Pattern.compile("\\b(LEVEL\\s*1B|1B)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EVIDENCE_LEVEL_2A = Pattern.compile("\\b(LEVEL\\s*2A|2A)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EVIDENCE_LEVEL_2B = Pattern.compile("\\b(LEVEL\\s*2B|2B)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EVIDENCE_LEVEL_3 = Pattern.compile("\\bLEVEL\\s*3\\b", Pattern.CASE_INSENSITIVE);
+    private static final String BENIGN_SYNONYMOUS_SNV = "synonymous snv";
 
     private SampleDao sampleDao = new SampleDao();
     private AnnovarDao annovarDao = new AnnovarDao();
@@ -68,13 +85,14 @@ public class MatchingController {
             response.sendRedirect("samples");
             return;
         }
-        List<String> refGenes = annovarDao.getRefGenes(sampleId);
-        if (refGenes.isEmpty()) {
+        List<VariantCore> variants = annovarDao.findAnnotationsBySampleId(sampleId);
+        Set<String> patientGenes = collectPatientGenesExcludingBenignVariants(variants);
+        if (patientGenes.isEmpty()) {
             response.sendRedirect("samples");
             return;
         }
         List<DrugLabel> drugLabels = drugLabelDao.findAll();
-        List<MatchedDrugLabel> matched = doMatch(refGenes, drugLabels);
+        List<MatchedDrugLabel> matched = doMatch(drugLabels, patientGenes);
         matched.sort(Comparator.comparingInt(MatchedDrugLabel::getScore).reversed());
         try {
             matchingResultDao.saveResults(sampleId, matched);
@@ -109,18 +127,27 @@ public class MatchingController {
         request.getRequestDispatcher("/views/matching_result.jsp").forward(request, response);
     }
 
-    private List<MatchedDrugLabel> doMatch(List<String> refGenes, List<DrugLabel> drugLabels) {
+    private List<MatchedDrugLabel> doMatch(List<DrugLabel> drugLabels, Set<String> patientGenes) {
         List<MatchedDrugLabel> matchedLabels = new ArrayList<>();
+        if (drugLabels == null || drugLabels.isEmpty() || patientGenes == null || patientGenes.isEmpty()) {
+            return matchedLabels;
+        }
         for (DrugLabel drugLabel : drugLabels) {
+            if (drugLabel == null) {
+                continue;
+            }
+            Set<String> labelGenes = extractGenesFromLabelSummary(drugLabel);
+            if (labelGenes.isEmpty()) {
+                continue;
+            }
             List<String> matchedGenes = new ArrayList<>();
-            String summary = drugLabel.getSummaryMarkdown() != null ? drugLabel.getSummaryMarkdown() : "";
-            for (String gene : refGenes) {
-                if (summary.contains(gene)) {
-                    matchedGenes.add(gene);
+            for (String patientGene : patientGenes) {
+                if (labelGenes.contains(patientGene)) {
+                    matchedGenes.add(patientGene);
                 }
             }
             if (!matchedGenes.isEmpty()) {
-                int score = calculateScore(drugLabel);
+                int score = calculateScore(drugLabel, patientGenes);
                 String recLevel = getRecommendationLevel(score);
                 matchedLabels.add(new MatchedDrugLabel(drugLabel, score, recLevel, matchedGenes));
             }
@@ -128,21 +155,113 @@ public class MatchingController {
         return matchedLabels;
     }
 
-    private int calculateScore(DrugLabel label) {
-        String summary = label.getSummaryMarkdown() != null ? label.getSummaryMarkdown() : "";
-        if (summary.contains("1A") || summary.contains("Level 1A")) return 10;
-        if (summary.contains("1B") || summary.contains("Level 1B")) return 8;
-        if (summary.contains("2A") || summary.contains("Level 2A")) return 5;
-        if (summary.contains("2B") || summary.contains("Level 2B")) return 3;
-        if (summary.contains("Level 3")) return 1;
-        if (label.isDosingInformation()) return 4;
-        return 1;
+    private int calculateScore(DrugLabel label, Set<String> patientGenes) {
+        if (label == null || patientGenes == null || patientGenes.isEmpty()) {
+            return 0;
+        }
+        String summary = Optional.ofNullable(label.getSummaryMarkdown()).orElse("");
+        int evidenceScore = 0;
+        if (EVIDENCE_LEVEL_1A.matcher(summary).find()) {
+            evidenceScore = 10;
+        } else if (EVIDENCE_LEVEL_1B.matcher(summary).find()) {
+            evidenceScore = 8;
+        } else if (EVIDENCE_LEVEL_2A.matcher(summary).find()) {
+            evidenceScore = 5;
+        } else if (EVIDENCE_LEVEL_2B.matcher(summary).find()) {
+            evidenceScore = 3;
+        } else if (EVIDENCE_LEVEL_3.matcher(summary).find()) {
+            evidenceScore = 1;
+        }
+
+        if (label.isDosingInformation()) {
+            evidenceScore += 4;
+        }
+        return Math.max(evidenceScore, 1);
     }
 
     private String getRecommendationLevel(int score) {
         if (score >= 8) return "Strong";
         if (score >= 4) return "Moderate";
         return "Optional";
+    }
+
+    private Set<String> collectPatientGenesExcludingBenignVariants(List<VariantCore> variants) {
+        if (variants == null || variants.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> genes = new LinkedHashSet<>();
+        for (VariantCore variant : variants) {
+            if (variant == null || variant.getAnnotation() == null) {
+                continue;
+            }
+            if (isBenignSynonymousVariant(variant)) {
+                continue;
+            }
+            String geneSymbol = Optional.ofNullable(variant.getAnnotation())
+                    .map(VariantAnnotation::getGeneSymbol)
+                    .orElse(null);
+            if (geneSymbol == null || geneSymbol.isBlank()) {
+                continue;
+            }
+            String[] splitGenes = geneSymbol.split("[,;]");
+            for (String splitGene : splitGenes) {
+                String normalizedGene = normalizeGene(splitGene);
+                if (normalizedGene != null) {
+                    genes.add(normalizedGene);
+                }
+            }
+        }
+        return genes;
+    }
+
+    private Set<String> extractGenesFromLabelSummary(DrugLabel label) {
+        String summary = Optional.ofNullable(label)
+                .map(DrugLabel::getSummaryMarkdown)
+                .orElse("");
+        Set<String> summaryTokens = new LinkedHashSet<>();
+        String[] split = summary.toUpperCase(Locale.ROOT).split("[^A-Z0-9_]+");
+        for (String token : split) {
+            if (!token.isBlank()) {
+                summaryTokens.add(token);
+            }
+        }
+        return summaryTokens;
+    }
+
+    private String normalizeGene(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private boolean isBenignSynonymousVariant(VariantCore variant) {
+        if (variant == null) {
+            return false;
+        }
+        VariantBioDetails bioDetails = annovarDao.loadBioDetailsIfNeeded(variant).getBioDetails();
+        if (bioDetails == null || bioDetails.getRawDetails() == null || bioDetails.getRawDetails().isBlank()) {
+            return false;
+        }
+        try {
+            JsonElement root = JsonParser.parseString(bioDetails.getRawDetails());
+            if (!root.isJsonObject()) {
+                return false;
+            }
+            JsonObject jsonObject = root.getAsJsonObject();
+            if (!jsonObject.has("annovar_col_9")) {
+                return false;
+            }
+            JsonElement exonicFunc = jsonObject.get("annovar_col_9");
+            String exonicFuncValue = exonicFunc != null && !exonicFunc.isJsonNull()
+                    ? exonicFunc.getAsString()
+                    : "";
+            return exonicFuncValue.trim().toLowerCase(Locale.ROOT).contains(BENIGN_SYNONYMOUS_SNV);
+        } catch (Exception e) {
+            log.debug("Could not parse variant_bio_details JSON for variant {}", variant.getId(), e);
+            return false;
+        }
     }
 
     public void uploadAnnovarOutput(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
