@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DrugDao extends BaseDao {
 
@@ -56,6 +57,21 @@ public class DrugDao extends BaseDao {
             }
         });
         return drugs;
+    }
+
+    public int count() {
+        AtomicInteger count = new AtomicInteger();
+        DBUtils.execSQL(connection -> {
+            try (PreparedStatement preparedStatement = connection.prepareStatement("select count(*) from drug");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    count.set(resultSet.getInt(1));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return count.get();
     }
 
 }

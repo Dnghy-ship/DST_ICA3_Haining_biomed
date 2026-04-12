@@ -27,6 +27,7 @@ public class IndexController {
             request.setAttribute("stats", stats);
         } catch (Exception e) {
             log.warn("Could not load dashboard stats", e);
+            request.setAttribute("stats", new DashboardStats());
         }
         request.getRequestDispatcher("/views/index.jsp").forward(request, response);
     }

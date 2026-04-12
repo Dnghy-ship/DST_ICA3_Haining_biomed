@@ -58,6 +58,14 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h2>Matching</h2>
             </div>
+            <div class="alert alert-info" role="alert">
+                <h5 class="alert-heading mb-2">How Matching Works</h5>
+                <ol class="mb-0 pl-3">
+                    <li>Upload ANNOVAR output (.tsv).</li>
+                    <li>System filters variants via ACMG criteria.</li>
+                    <li>Results are matched against PharmGKB and scored by evidence level.</li>
+                </ol>
+            </div>
             <div class="table-responsive">
                 <form method="post" action="upload" enctype="multipart/form-data">
                     <div class="form-group">

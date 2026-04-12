@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DosingGuidelineDao extends BaseDao {
 
@@ -64,6 +65,21 @@ public class DosingGuidelineDao extends BaseDao {
             }
         });
         return dosingGuidelines;
+    }
+
+    public int count() {
+        AtomicInteger count = new AtomicInteger();
+        DBUtils.execSQL(connection -> {
+            try (PreparedStatement preparedStatement = connection.prepareStatement("select count(*) from dosing_guideline");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    count.set(resultSet.getInt(1));
+                }
+            } catch (SQLException e) {
+                log.info("", e);
+            }
+        });
+        return count.get();
     }
 
 }

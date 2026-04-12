@@ -112,9 +112,10 @@ public class AnnovarDao extends BaseDao {
     }
 
     public List<VariantCore> findAnnotationsBySampleId(int sampleId) {
-        String sql = "select vc.id, vc.sample_id, va.gene_symbol, va.acmg_classification " +
+        String sql = "select vc.id, vc.sample_id, va.gene_symbol, va.acmg_classification, vbd.raw_details " +
                 "from variant_core vc " +
                 "join variant_annotation va on va.variant_id = vc.id " +
+                "left join variant_bio_details vbd on vbd.variant_id = vc.id " +
                 "where vc.sample_id = ? and va.gene_symbol is not null and va.gene_symbol <> ''";
         List<VariantCore> variants = new ArrayList<>();
         DBUtils.execSQL(connection -> {
@@ -131,6 +132,11 @@ public class AnnovarDao extends BaseDao {
                         annotation.setGeneSymbol(nullableTrim(rs.getString("gene_symbol")));
                         annotation.setAcmgClassification(nullableTrim(rs.getString("acmg_classification")));
                         core.setAnnotation(annotation);
+
+                        String rawDetails = rs.getString("raw_details");
+                        if (rawDetails != null) {
+                            core.setBioDetails(new VariantBioDetails(rs.getInt("id"), rawDetails));
+                        }
                         variants.add(core);
                     }
                 }

@@ -31,7 +31,7 @@
     <!-- Custom styles for this template -->
     <link href="<%=request.getContextPath()%>/static/css/app.css" rel="stylesheet">
     <style>
-        .summary-cell { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .summary-cell { max-width: 300px; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -97,4 +97,3 @@
 </script>
 </body>
 </html>
-

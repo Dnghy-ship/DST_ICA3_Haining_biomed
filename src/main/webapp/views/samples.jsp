@@ -64,14 +64,10 @@
                         <tr>
                             <td>${item.id}</td>
                             <td>${item.uploadedBy}</td>
-                            <td>${item.createdAt}</td>
+                            <td data-order="${item.createdAt.time}">${item.createdAtFormatted}</td>
                             <td>
-                                <a href="<%=request.getContextPath()%>/matching?sampleId=${item.id}"
-                                   class="btn btn-sm btn-outline-primary mr-1">Run Matching</a>
-                                <c:if test="${not empty samplesWithResults and samplesWithResults.contains(item.id)}">
-                                    <a href="<%=request.getContextPath()%>/matchingResult?sampleId=${item.id}"
-                                       class="btn btn-sm btn-info">View Result</a>
-                                </c:if>
+                                <a href="<%=request.getContextPath()%>/matchingResult?sampleId=${item.id}"
+                                   class="btn btn-sm btn-info">View Report</a>
                             </td>
                         </tr>
                     </c:forEach>
@@ -84,11 +80,10 @@
 <script>
     $(document).ready(function () {
         $('#samplesTable').DataTable({
-            order: [[0, 'desc']],
+            order: [[2, 'desc']],
             columnDefs: [{ orderable: false, targets: 3 }]
         });
     });
 </script>
 </body>
 </html>
-

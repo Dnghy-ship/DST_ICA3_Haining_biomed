@@ -1,6 +1,7 @@
 package cn.edu.zju.bean;
 
 import java.util.Date;
+import java.text.SimpleDateFormat;
 
 public class Sample {
     private int id;
@@ -30,6 +31,13 @@ public class Sample {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCreatedAtFormatted() {
+        if (createdAt == null) {
+            return "";
+        }
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(createdAt);
     }
 
     public String getUploadedBy() {
