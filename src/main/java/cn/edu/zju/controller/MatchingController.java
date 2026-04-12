@@ -219,7 +219,7 @@ public class MatchingController {
                 .map(DrugLabel::getSummaryMarkdown)
                 .orElse("");
         Set<String> summaryTokens = new LinkedHashSet<>();
-        String[] split = summary.toUpperCase(Locale.ROOT).split("[^A-Z0-9_]+");
+        String[] split = summary.toUpperCase(Locale.ROOT).split("[^A-Z0-9_-]+");
         for (String token : split) {
             if (!token.isBlank()) {
                 summaryTokens.add(token);
@@ -257,7 +257,11 @@ public class MatchingController {
             String exonicFuncValue = exonicFunc != null && !exonicFunc.isJsonNull()
                     ? exonicFunc.getAsString()
                     : "";
-            return exonicFuncValue.trim().toLowerCase(Locale.ROOT).contains(BENIGN_SYNONYMOUS_SNV);
+            String normalizedExonicFunc = exonicFuncValue.trim()
+                    .replace("_", " ")
+                    .replaceAll("\\s+", " ")
+                    .toLowerCase(Locale.ROOT);
+            return BENIGN_SYNONYMOUS_SNV.equals(normalizedExonicFunc);
         } catch (Exception e) {
             log.debug("Could not parse variant_bio_details JSON for variant {}", variant.getId(), e);
             return false;

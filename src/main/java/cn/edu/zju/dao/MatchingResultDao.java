@@ -40,7 +40,9 @@ public class MatchingResultDao extends BaseDao {
                     ins.setString(2, label.getId());
                     ins.setInt(3, label.getScore());
                     ins.setString(4, label.getRecommendationLevel());
-                    List<String> matchedGenes = label.getMatchedGenes() == null ? new ArrayList<>() : label.getMatchedGenes();
+                    List<String> matchedGenes = label.getMatchedGenes() == null
+                            ? new ArrayList<>()
+                            : new ArrayList<>(label.getMatchedGenes());
                     ins.setString(5, String.join(",", matchedGenes));
                     ins.setTimestamp(6, new Timestamp(new Date().getTime()));
                     ins.addBatch();
