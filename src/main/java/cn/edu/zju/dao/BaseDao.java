@@ -16,15 +16,16 @@ public abstract class BaseDao {
     public boolean existsById(String id, String tableName) {
         AtomicBoolean exists = new AtomicBoolean(false);
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement(String.format("select 1 from %s where id =?", tableName));
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    String.format("select 1 from %s where id =?", tableName))) {
                 preparedStatement.setString(1, id);
-                ResultSet resultSet = preparedStatement.executeQuery();
-                if (resultSet.next()) {
-                    exists.set(true);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        exists.set(true);
+                    }
                 }
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to check existence: table={}, id={}", tableName, id, e);
             }
 
         });

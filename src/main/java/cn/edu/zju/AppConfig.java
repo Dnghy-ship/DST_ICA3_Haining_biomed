@@ -17,9 +17,11 @@ public class AppConfig {
     }
 
     public AppConfig() {
-        InputStream resourceAsStream = null;
-        try {
-            resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("app.properties");
+        try (InputStream resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("app.properties")) {
+            if (resourceAsStream == null) {
+                log.warn("app.properties not found on classpath");
+                return;
+            }
             Properties properties = new Properties();
             try {
                 properties.load(resourceAsStream);
@@ -27,16 +29,10 @@ public class AppConfig {
                 this.jdbcUsername = properties.getProperty("jdbc.username");
                 this.jdbcPassword = properties.getProperty("jdbc.password");
             } catch (IOException e) {
-                log.info("", e);
+                log.warn("Failed to load app.properties", e);
             }
-        } finally {
-            if (resourceAsStream != null) {
-                try {
-                    resourceAsStream.close();
-                } catch (IOException e) {
-                    log.info("", e);
-                }
-            }
+        } catch (IOException e) {
+            log.warn("Failed to close app.properties stream", e);
         }
     }
 

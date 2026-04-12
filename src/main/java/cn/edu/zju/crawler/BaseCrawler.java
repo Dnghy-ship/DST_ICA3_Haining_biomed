@@ -19,18 +19,20 @@ public abstract class BaseCrawler {
             HttpURLConnection urlConnection = ((HttpURLConnection) url.openConnection());
             urlConnection.setConnectTimeout(60000);
             urlConnection.setReadTimeout(60000);
-            InputStream inputStream = urlConnection.getInputStream();
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            int count = inputStream.read(buffer);
-            while (count >= 0) {
-                byteArrayOutputStream.write(buffer, 0, count);
-                count = inputStream.read(buffer);
+            try (InputStream inputStream = urlConnection.getInputStream();
+                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[4096];
+                int count = inputStream.read(buffer);
+                while (count >= 0) {
+                    byteArrayOutputStream.write(buffer, 0, count);
+                    count = inputStream.read(buffer);
+                }
+                return byteArrayOutputStream.toString();
+            } finally {
+                urlConnection.disconnect();
             }
-            inputStream.close();
-            return byteArrayOutputStream.toString();
         } catch (IOException e) {
-            log.info("", e);
+            log.warn("Failed to fetch URL content from {}", urlString, e);
         }
         return null;
     }

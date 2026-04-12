@@ -1,7 +1,6 @@
 package cn.edu.zju.dao;
 
 import cn.edu.zju.bean.DosingGuideline;
-import cn.edu.zju.bean.Drug;
 import cn.edu.zju.dbutils.DBUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +22,8 @@ public class DosingGuidelineDao extends BaseDao {
 
     public void saveDosingGuideline(DosingGuideline dosingGuideline) {
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("insert into dosing_guideline (id,obj_cls,name,recommendation,drug_id,source,summary_markdown,text_markdown,raw) values (?,?,?,?,?,?,?,?,?)");
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "insert into dosing_guideline (id,obj_cls,name,recommendation,drug_id,source,summary_markdown,text_markdown,raw) values (?,?,?,?,?,?,?,?,?)")) {
                 preparedStatement.setString(1, dosingGuideline.getId());
                 preparedStatement.setString(2, dosingGuideline.getObjCls());
                 preparedStatement.setString(3, dosingGuideline.getName());
@@ -36,7 +35,7 @@ public class DosingGuidelineDao extends BaseDao {
                 preparedStatement.setString(9, dosingGuideline.getRaw());
                 preparedStatement.execute();
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to save dosing guideline id={}", dosingGuideline != null ? dosingGuideline.getId() : null, e);
             }
         });
 
@@ -44,9 +43,9 @@ public class DosingGuidelineDao extends BaseDao {
     public List<DosingGuideline> findAll() {
         List<DosingGuideline> dosingGuidelines = new ArrayList<>();
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("select id,obj_cls,name,recommendation,drug_id,source,summary_markdown,text_markdown,raw from dosing_guideline");
-                ResultSet resultSet = preparedStatement.executeQuery();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "select id,obj_cls,name,recommendation,drug_id,source,summary_markdown,text_markdown,raw from dosing_guideline");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String id = resultSet.getString("id");
                     String objCls = resultSet.getString("obj_cls");
@@ -61,7 +60,7 @@ public class DosingGuidelineDao extends BaseDao {
                     dosingGuidelines.add(dosingGuideline);
                 }
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to load dosing guidelines", e);
             }
         });
         return dosingGuidelines;
@@ -76,7 +75,7 @@ public class DosingGuidelineDao extends BaseDao {
                     count.set(resultSet.getInt(1));
                 }
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to count dosing guidelines", e);
             }
         });
         return count.get();

@@ -25,7 +25,7 @@ public class DispatchServlet extends HttpServlet {
         try {
             response.getWriter().write("Not Found");
         } catch (IOException e) {
-            log.info("", e);
+            log.warn("Failed to write not-found response", e);
         }
     };
 

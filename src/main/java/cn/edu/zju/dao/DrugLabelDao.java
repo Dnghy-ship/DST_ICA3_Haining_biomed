@@ -1,6 +1,5 @@
 package cn.edu.zju.dao;
 
-import cn.edu.zju.bean.Drug;
 import cn.edu.zju.bean.DrugLabel;
 import cn.edu.zju.dbutils.DBUtils;
 import org.slf4j.Logger;
@@ -22,8 +21,8 @@ public class DrugLabelDao extends BaseDao {
 
     public void saveDrugLabel(DrugLabel drugLabel) {
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("insert into drug_label (id,name,obj_cls,alternate_drug_available,dosing_information,prescribing_markdown,source,text_markdown,summary_markdown,raw,drug_id) values (?,?,?,?,?,?,?,?,?,?,?)");
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "insert into drug_label (id,name,obj_cls,alternate_drug_available,dosing_information,prescribing_markdown,source,text_markdown,summary_markdown,raw,drug_id) values (?,?,?,?,?,?,?,?,?,?,?)")) {
                 preparedStatement.setString(1, drugLabel.getId());
                 preparedStatement.setString(2, drugLabel.getName());
                 preparedStatement.setString(3, drugLabel.getObjCls());
@@ -37,7 +36,7 @@ public class DrugLabelDao extends BaseDao {
                 preparedStatement.setString(11, drugLabel.getDrugId());
                 preparedStatement.execute();
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to save drug label id={}", drugLabel != null ? drugLabel.getId() : null, e);
             }
         });
 
@@ -46,9 +45,9 @@ public class DrugLabelDao extends BaseDao {
     public List<DrugLabel> findAll() {
         List<DrugLabel> drugLabels = new ArrayList<>();
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("select id, name, obj_cls, alternate_drug_available, dosing_information, prescribing_markdown, source, text_markdown, summary_markdown, raw, drug_id from drug_label");
-                ResultSet resultSet = preparedStatement.executeQuery();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "select id, name, obj_cls, alternate_drug_available, dosing_information, prescribing_markdown, source, text_markdown, summary_markdown, raw, drug_id from drug_label");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String id = resultSet.getString("id");
                     String name = resultSet.getString("name");
@@ -65,7 +64,7 @@ public class DrugLabelDao extends BaseDao {
                     drugLabels.add(drugLabel);
                 }
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to load drug labels", e);
             }
         });
         return drugLabels;
