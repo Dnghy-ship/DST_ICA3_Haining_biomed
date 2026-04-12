@@ -240,7 +240,11 @@ public class MatchingController {
         if (variant == null) {
             return false;
         }
-        VariantBioDetails bioDetails = annovarDao.loadBioDetailsIfNeeded(variant).getBioDetails();
+        VariantCore loadedVariant = annovarDao.loadBioDetailsIfNeeded(variant);
+        if (loadedVariant == null) {
+            return false;
+        }
+        VariantBioDetails bioDetails = loadedVariant.getBioDetails();
         if (bioDetails == null || bioDetails.getRawDetails() == null || bioDetails.getRawDetails().isBlank()) {
             return false;
         }
