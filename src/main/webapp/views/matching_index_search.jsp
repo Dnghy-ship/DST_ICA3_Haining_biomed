@@ -66,13 +66,13 @@
                 <c:when test="${not empty matched}">
                     <div class="accordion" id="matchingAccordion">
                         <c:forEach items="${matched}" var="item" varStatus="loop">
-                            <div class="card mb-1">
+                            <div class="card mb-1 ${item.score >= 8 ? 'border-success' : (item.score >= 4 ? 'border-warning' : 'border-secondary')}">
                                 <div class="card-header p-0" id="heading${loop.index}">
                                     <button class="btn btn-link btn-block text-left px-3 py-2 d-flex align-items-center justify-content-between"
                                             type="button"
                                             data-toggle="collapse"
                                             data-target="#collapse${loop.index}"
-                                            aria-expanded="${loop.index == 0 ? 'true' : 'false'}"
+                                            aria-expanded="${loop.index == 0 || item.score >= 8 ? 'true' : 'false'}"
                                             aria-controls="collapse${loop.index}">
                                         <span>
                                             <strong>${item.name}</strong>
@@ -81,8 +81,11 @@
                                             </c:forEach>
                                         </span>
                                         <span>
-                                            <span class="badge badge-primary score-badge mr-1">Score: ${item.score}</span>
+                                            <span class="badge ${item.score >= 8 ? 'badge-success' : (item.score >= 4 ? 'badge-warning' : 'badge-secondary')} score-badge mr-1">Score: ${item.score}</span>
                                             <c:choose>
+                                                <c:when test="${empty item.recommendationLevel}">
+                                                    <span class="badge badge-light score-badge">Unrated</span>
+                                                </c:when>
                                                 <c:when test="${item.recommendationLevel == 'Strong'}">
                                                     <span class="badge badge-success score-badge">Strong</span>
                                                 </c:when>
@@ -97,7 +100,7 @@
                                     </button>
                                 </div>
                                 <div id="collapse${loop.index}"
-                                     class="collapse ${loop.index == 0 ? 'show' : ''}"
+                                     class="collapse ${loop.index == 0 || item.score >= 8 ? 'show' : ''}"
                                      aria-labelledby="heading${loop.index}"
                                      data-parent="#matchingAccordion">
                                     <div class="card-body">
@@ -128,4 +131,3 @@
 </div>
 </body>
 </html>
-

@@ -186,6 +186,16 @@ public class AnnovarDao extends BaseDao {
         return holder[0];
     }
 
+    public VariantCore loadBioDetailsIfNeeded(VariantCore core) {
+        if (core == null) {
+            return null;
+        }
+        if (core.getBioDetails() == null) {
+            core.setBioDetails(getBioDetails(core.getId()));
+        }
+        return core;
+    }
+
     public List<String> getRefGenes(int sampleId) {
         String sql = "select distinct va.gene_symbol " +
                 "from variant_core vc " +

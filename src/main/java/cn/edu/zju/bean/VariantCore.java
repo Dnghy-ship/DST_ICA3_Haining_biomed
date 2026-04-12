@@ -10,6 +10,7 @@ public class VariantCore {
     private String refAllele;
     private String altAllele;
     private VariantAnnotation annotation;
+    private VariantBioDetails bioDetails;
 
     public VariantCore() {
     }
@@ -86,5 +87,13 @@ public class VariantCore {
 
     public void setAnnotation(VariantAnnotation annotation) {
         this.annotation = annotation;
+    }
+
+    public VariantBioDetails getBioDetails() {
+        return bioDetails;
+    }
+
+    public void setBioDetails(VariantBioDetails bioDetails) {
+        this.bioDetails = bioDetails;
     }
 }
