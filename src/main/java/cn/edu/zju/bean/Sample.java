@@ -4,6 +4,9 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 public class Sample {
+    private static final ThreadLocal<SimpleDateFormat> DATE_TIME_FORMATTER =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+
     private int id;
     private Date createdAt;
     private String uploadedBy;
@@ -37,7 +40,7 @@ public class Sample {
         if (createdAt == null) {
             return "";
         }
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(createdAt);
+        return DATE_TIME_FORMATTER.get().format(createdAt);
     }
 
     public String getUploadedBy() {
