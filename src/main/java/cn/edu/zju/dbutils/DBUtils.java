@@ -19,31 +19,27 @@ public class DBUtils {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            log.info("", e);
+            log.error("MySQL JDBC driver not found", e);
         }
         try {
             connection = DriverManager.getConnection(appConfig.getJdbcUrl()
                     , appConfig.getJdbcUsername()
                     , appConfig.getJdbcPassword());
         } catch (SQLException e) {
-            log.info("", e);
+            log.error("Failed to get database connection", e);
         }
         return connection;
     }
 
     public static void execSQL(Consumer<Connection> consumer) {
-        Connection connection = null;
-        try {
-            connection = getConnection();
-            consumer.accept(connection);
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    log.info("", e);
-                }
+        try (Connection connection = getConnection()) {
+            if (connection == null) {
+                log.warn("Skipping SQL execution because database connection is null");
+                return;
             }
+            consumer.accept(connection);
+        } catch (SQLException e) {
+            log.warn("Failed to close database connection", e);
         }
     }
 }

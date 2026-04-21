@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DrugDao extends BaseDao {
 
@@ -21,8 +22,8 @@ public class DrugDao extends BaseDao {
 
     public void saveDrug(Drug drug) {
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("insert into drug (id, name, obj_cls, biomarker, drug_url) values    (?,?,?,?,?)");
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "insert into drug (id, name, obj_cls, biomarker, drug_url) values    (?,?,?,?,?)")) {
                 preparedStatement.setString(1, drug.getId());
                 preparedStatement.setString(2, drug.getName());
                 preparedStatement.setString(3, drug.getObjCls());
@@ -30,7 +31,7 @@ public class DrugDao extends BaseDao {
                 preparedStatement.setString(5, drug.getDrugUrl());
                 preparedStatement.execute();
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to save drug id={}", drug != null ? drug.getId() : null, e);
             }
         });
 
@@ -39,9 +40,8 @@ public class DrugDao extends BaseDao {
     public List<Drug> findAll() {
         List<Drug> drugs = new ArrayList<>();
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("select id,name,obj_cls,drug_url,biomarker from drug");
-                ResultSet resultSet = preparedStatement.executeQuery();
+            try (PreparedStatement preparedStatement = connection.prepareStatement("select id,name,obj_cls,drug_url,biomarker from drug");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String id = resultSet.getString("id");
                     String name = resultSet.getString("name");
@@ -52,10 +52,25 @@ public class DrugDao extends BaseDao {
                     drugs.add(drug);
                 }
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed to load drugs", e);
             }
         });
         return drugs;
+    }
+
+    public int count() {
+        AtomicInteger count = new AtomicInteger();
+        DBUtils.execSQL(connection -> {
+            try (PreparedStatement preparedStatement = connection.prepareStatement("select count(*) from drug");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    count.set(resultSet.getInt(1));
+                }
+            } catch (SQLException e) {
+                log.warn("Failed to count drugs", e);
+            }
+        });
+        return count.get();
     }
 
 }

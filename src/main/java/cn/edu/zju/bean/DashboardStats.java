@@ -6,14 +6,18 @@ public class DashboardStats {
 
     private int totalSamples;
     private long totalVariants;
+    private int totalDrugs;
+    private int totalGuidelines;
     private List<Sample> recentActivities;
 
     public DashboardStats() {
     }
 
-    public DashboardStats(int totalSamples, long totalVariants, List<Sample> recentActivities) {
+    public DashboardStats(int totalSamples, long totalVariants, int totalDrugs, int totalGuidelines, List<Sample> recentActivities) {
         this.totalSamples = totalSamples;
         this.totalVariants = totalVariants;
+        this.totalDrugs = totalDrugs;
+        this.totalGuidelines = totalGuidelines;
         this.recentActivities = recentActivities;
     }
 
@@ -39,5 +43,21 @@ public class DashboardStats {
 
     public void setRecentActivities(List<Sample> recentActivities) {
         this.recentActivities = recentActivities;
+    }
+
+    public int getTotalDrugs() {
+        return totalDrugs;
+    }
+
+    public void setTotalDrugs(int totalDrugs) {
+        this.totalDrugs = totalDrugs;
+    }
+
+    public int getTotalGuidelines() {
+        return totalGuidelines;
+    }
+
+    public void setTotalGuidelines(int totalGuidelines) {
+        this.totalGuidelines = totalGuidelines;
     }
 }

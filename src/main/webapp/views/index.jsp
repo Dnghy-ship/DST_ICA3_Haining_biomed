@@ -29,6 +29,7 @@
         .stat-card.primary { border-color: #007bff; }
         .stat-card.success { border-color: #28a745; }
         .stat-card.info    { border-color: #17a2b8; }
+        .stat-card.warning { border-color: #ffc107; }
         .stat-card .stat-value { font-size: 2rem; font-weight: 700; }
         .stat-card .stat-label { font-size: .85rem; color: #6c757d; text-transform: uppercase; }
     </style>
@@ -51,7 +52,7 @@
 
             <!-- Stats Overview -->
             <div class="row mb-4">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="card stat-card primary shadow-sm">
                         <div class="card-body">
                             <div class="stat-label">Total Samples</div>
@@ -65,7 +66,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="card stat-card success shadow-sm">
                         <div class="card-body">
                             <div class="stat-label">Total Variants</div>
@@ -79,17 +80,41 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="card stat-card info shadow-sm">
                         <div class="card-body">
-                            <div class="stat-label">Quick Actions</div>
-                            <div class="mt-2">
-                                <a href="<%=request.getContextPath()%>/matchingIndex" class="btn btn-sm btn-primary mr-1">New Matching</a>
-                                <a href="<%=request.getContextPath()%>/samples" class="btn btn-sm btn-outline-secondary">View Samples</a>
+                            <div class="stat-label">Total Drugs</div>
+                            <div class="stat-value text-info">
+                                <c:choose>
+                                    <c:when test="${not empty stats}">${stats.totalDrugs}</c:when>
+                                    <c:otherwise>—</c:otherwise>
+                                </c:choose>
                             </div>
+                            <small class="text-muted">Knowledge base drugs</small>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card stat-card warning shadow-sm">
+                        <div class="card-body">
+                            <div class="stat-label">Total Guidelines</div>
+                            <div class="stat-value text-warning">
+                                <c:choose>
+                                    <c:when test="${not empty stats}">${stats.totalGuidelines}</c:when>
+                                    <c:otherwise>—</c:otherwise>
+                                </c:choose>
+                            </div>
+                            <small class="text-muted">Knowledge base dosing guidelines</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <a href="<%=request.getContextPath()%>/matchingIndex" class="btn btn-sm btn-primary mr-1">New Matching</a>
+                <a href="<%=request.getContextPath()%>/samples" class="btn btn-sm btn-outline-secondary mr-1">View Samples</a>
+                <a href="<%=request.getContextPath()%>/drugs" class="btn btn-sm btn-outline-info mr-1">View Drugs</a>
+                <a href="<%=request.getContextPath()%>/dosingGuideline" class="btn btn-sm btn-outline-warning">View Guidelines</a>
             </div>
 
             <!-- Recent Matching Activities -->

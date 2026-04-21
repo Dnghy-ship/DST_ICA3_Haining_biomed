@@ -47,9 +47,8 @@ public class DrugLabelCrawler extends BaseCrawler {
     public void doCrawlerDrugLabel() {
 
         DBUtils.execSQL(connection -> {
-            try {
-                PreparedStatement preparedStatement = connection.prepareStatement("select * from drug");
-                ResultSet resultSet = preparedStatement.executeQuery();
+            try (PreparedStatement preparedStatement = connection.prepareStatement("select * from drug");
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String id = resultSet.getString("id");
                     String content = this.getURLContent(String.format(URL_DRUG_LABEL_DETAIL, id));
@@ -85,7 +84,7 @@ public class DrugLabelCrawler extends BaseCrawler {
                     });
                 }
             } catch (SQLException e) {
-                log.info("", e);
+                log.warn("Failed while crawling drug labels from existing drug table", e);
             }
         });
     }
