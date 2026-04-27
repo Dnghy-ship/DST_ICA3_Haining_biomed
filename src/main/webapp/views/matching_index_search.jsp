@@ -260,7 +260,7 @@
             }
 
             var originalHtml = exportButton.innerHTML;
-            var fallbackDimension = 100;
+            var minDimensionThreshold = 100;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
 
@@ -309,8 +309,8 @@
 
             var doExport = function () {
                 var cloneRect = reportClone.getBoundingClientRect();
-                var exportWidth = Math.max(cloneRect.width, fallbackDimension);
-                var exportHeight = Math.max(reportClone.scrollHeight, cloneRect.height, fallbackDimension);
+                var exportWidth = Math.max(cloneRect.width, minDimensionThreshold);
+                var exportHeight = Math.max(reportClone.scrollHeight, cloneRect.height, minDimensionThreshold);
                 options.html2canvas.width = exportWidth;
                 options.html2canvas.height = exportHeight;
                 options.html2canvas.x = 0;
