@@ -293,17 +293,17 @@ public class MatchingController {
         BigDecimal weight = parsePositiveDecimal(request.getParameter("weight"));
         String gender = normalizeText(request.getParameter("gender"));
         if (age == null || age <= 0) {
-            request.setAttribute("validateError", "Age must be a positive integer");
+            request.setAttribute("validateError", "Age is required and must be a positive integer");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }
         if (height == null) {
-            request.setAttribute("validateError", "Height must be a positive number");
+            request.setAttribute("validateError", "Height is required and must be a positive number");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }
         if (weight == null) {
-            request.setAttribute("validateError", "Weight must be a positive number");
+            request.setAttribute("validateError", "Weight is required and must be a positive number");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }

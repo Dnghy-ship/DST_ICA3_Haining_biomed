@@ -47,9 +47,6 @@ public class DosageCalculatorService {
                 continue;
             }
             String normalized = symbol.toUpperCase(Locale.ROOT);
-            if (normalized.isBlank()) {
-                continue;
-            }
             if (normalized.contains("VKORC1")) {
                 hasVkorc1 = true;
             }
