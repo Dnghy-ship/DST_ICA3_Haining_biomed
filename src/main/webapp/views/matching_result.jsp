@@ -260,9 +260,9 @@
             }
 
             var originalHtml = exportButton.innerHTML;
-            // 718px ≈ A4 printable width (190mm) at 96 DPI.
+            // 718px ≈ 190mm at 96 DPI (A4 content width after 10mm left/right margins).
             var A4_CONTENT_WIDTH_PX = 718;
-            // 38px ≈ 10mm at 96 DPI.
+            // 38px ≈ 10mm at 96 DPI (matches configured PDF page margin).
             var TEMPLATE_PADDING_PX = 38;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
