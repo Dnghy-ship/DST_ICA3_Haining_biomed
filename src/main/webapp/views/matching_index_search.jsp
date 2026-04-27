@@ -262,27 +262,43 @@
                 margin: [10, 10, 10, 10],
                 filename: "clinical_report_sample_" + (exportButton.getAttribute("data-sample-id") || "unknown") + ".pdf",
                 image: {type: "jpeg", quality: 0.98},
-                html2canvas: {scale: 2, useCORS: true},
+                html2canvas: {scale: 1, useCORS: true, backgroundColor: "#ffffff"},
                 jsPDF: {unit: "mm", format: "a4", orientation: "portrait"},
                 pagebreak: {mode: ["css", "legacy"]}
             };
 
+            var exportRoot = document.createElement("div");
+            exportRoot.id = "clinicalReportPdfExportRoot";
+            exportRoot.style.position = "fixed";
+            exportRoot.style.left = "-100000px";
+            exportRoot.style.top = "0";
+            exportRoot.style.width = "210mm";
+            exportRoot.style.background = "#ffffff";
+            exportRoot.style.pointerEvents = "none";
+            exportRoot.style.opacity = "1";
+            exportRoot.style.zIndex = "-1";
+            document.body.appendChild(exportRoot);
+
             var reportClone = reportTemplate.cloneNode(true);
             reportClone.id = "clinicalReportPdfTemplateClone";
-            reportClone.style.position = "fixed";
-            reportClone.style.left = "0";
-            reportClone.style.top = "0";
+            reportClone.style.position = "static";
+            reportClone.style.left = "auto";
+            reportClone.style.top = "auto";
             reportClone.style.width = "190mm";
             reportClone.style.maxWidth = "190mm";
-            reportClone.style.zIndex = "2147483647";
             reportClone.style.background = "#ffffff";
             reportClone.style.padding = "10mm";
             reportClone.style.margin = "0";
             reportClone.style.pointerEvents = "none";
             reportClone.style.boxSizing = "border-box";
-            document.body.appendChild(reportClone);
+            exportRoot.appendChild(reportClone);
 
             var doExport = function () {
+                var exportWidth = Math.max(reportClone.scrollWidth, reportClone.offsetWidth, 1);
+                var exportHeight = Math.max(reportClone.scrollHeight, reportClone.offsetHeight, 1);
+                options.html2canvas.windowWidth = exportWidth;
+                options.html2canvas.windowHeight = exportHeight;
+
                 html2pdf()
                     .set(options)
                     .from(reportClone)
@@ -291,8 +307,8 @@
                         alert("Unable to export clinical report right now. Please try again.");
                     })
                     .finally(function () {
-                        if (reportClone && reportClone.parentNode) {
-                            reportClone.parentNode.removeChild(reportClone);
+                        if (exportRoot && exportRoot.parentNode) {
+                            exportRoot.parentNode.removeChild(exportRoot);
                         }
                         exportButton.disabled = false;
                         exportButton.innerHTML = originalHtml;
