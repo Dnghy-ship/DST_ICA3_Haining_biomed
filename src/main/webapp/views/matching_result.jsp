@@ -303,7 +303,8 @@
                     .set(options)
                     .from(reportClone)
                     .save()
-                    .catch(function () {
+                    .catch(function (error) {
+                        console.error("Clinical report PDF export failed:", error);
                         alert("Unable to export clinical report right now. Please try again.");
                     })
                     .finally(function () {
