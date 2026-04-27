@@ -17,7 +17,6 @@
 
     <!-- Bootstrap core CSS -->
     <link href="<%=request.getContextPath()%>/static/bootstrap/css/bootstrap.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <script src="<%=request.getContextPath()%>/static/jquery/jquery-3.4.1.js"></script>
     <script src="<%=request.getContextPath()%>/static/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -94,7 +93,7 @@
                         id="exportClinicalReportBtn"
                         class="btn btn-primary btn-sm"
                         ${empty matched ? 'disabled="disabled"' : ''}>
-                    <i class="fa-solid fa-file-arrow-down mr-1"></i>Export Clinical Report (PDF)
+                    <span class="mr-1">&#11015;</span>Export Clinical Report (PDF)
                 </button>
             </div>
 
@@ -175,15 +174,15 @@
                         <tbody>
                         <tr>
                             <th style="width: 30%;">Sample ID</th>
-                            <td>${sample.id}</td>
+                            <td><c:out value="${sample.id}"/></td>
                         </tr>
                         <tr>
                             <th>Uploaded At</th>
-                            <td>${sample.createdAt}</td>
+                            <td><c:out value="${sample.createdAt}"/></td>
                         </tr>
                         <tr>
                             <th>Uploaded By</th>
-                            <td>${sample.uploadedBy}</td>
+                            <td><c:out value="${sample.uploadedBy}"/></td>
                         </tr>
                         <tr>
                             <th>Total Matched Labels</th>
@@ -209,11 +208,11 @@
                             <tbody>
                             <c:forEach items="${matched}" var="item">
                                 <tr>
-                                    <td>${item.name}</td>
-                                    <td>${item.score}</td>
+                                    <td><c:out value="${item.name}"/></td>
+                                    <td><c:out value="${item.score}"/></td>
                                     <td><c:out value="${empty item.recommendationLevel ? 'Unrated' : item.recommendationLevel}"/></td>
-                                    <td><c:forEach items="${item.matchedGenes}" var="gene" varStatus="gs">${gene}<c:if test="${!gs.last}">, </c:if></c:forEach></td>
-                                    <td>${item.source}</td>
+                                    <td><c:forEach items="${item.matchedGenes}" var="gene" varStatus="gs"><c:out value="${gene}"/><c:if test="${!gs.last}">, </c:if></c:forEach></td>
+                                    <td><c:out value="${item.source}"/></td>
                                 </tr>
                             </c:forEach>
                             </tbody>
@@ -222,11 +221,11 @@
                         <h5 class="mb-2">Clinical Detail Notes</h5>
                         <c:forEach items="${matched}" var="item" varStatus="loop">
                             <div class="border rounded p-2 mb-2">
-                                <div><strong>${loop.count}. ${item.name}</strong></div>
-                                <div><strong>Dosing Info:</strong> ${item.dosingInformation}</div>
-                                <div><strong>Alternate Drug Available:</strong> ${item.alternateDrugAvailable}</div>
+                                <div><strong><c:out value="${loop.count}"/>. <c:out value="${item.name}"/></strong></div>
+                                <div><strong>Dosing Info:</strong> <c:out value="${item.dosingInformation}"/></div>
+                                <div><strong>Alternate Drug Available:</strong> <c:out value="${item.alternateDrugAvailable}"/></div>
                                 <div class="mt-2"><strong>Summary</strong></div>
-                                <div class="pdf-summary-block">${item.summaryMarkdown}</div>
+                                <div class="pdf-summary-block"><c:out value="${item.summaryMarkdown}"/></div>
                             </div>
                         </c:forEach>
                     </c:when>
