@@ -255,6 +255,8 @@
             }
 
             var originalHtml = exportButton.innerHTML;
+            var OFF_SCREEN_LEFT = "-100000px";
+            var MIN_EXPORT_DIMENSION = 1;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
 
@@ -270,7 +272,7 @@
             var exportRoot = document.createElement("div");
             exportRoot.id = "clinicalReportPdfExportRoot";
             exportRoot.style.position = "fixed";
-            exportRoot.style.left = "-100000px";
+            exportRoot.style.left = OFF_SCREEN_LEFT;
             exportRoot.style.top = "0";
             exportRoot.style.width = "210mm";
             exportRoot.style.background = "#ffffff";
@@ -294,8 +296,8 @@
             exportRoot.appendChild(reportClone);
 
             var doExport = function () {
-                var exportWidth = Math.max(reportClone.scrollWidth, reportClone.offsetWidth, 1);
-                var exportHeight = Math.max(reportClone.scrollHeight, reportClone.offsetHeight, 1);
+                var exportWidth = Math.max(reportClone.scrollWidth, reportClone.offsetWidth, MIN_EXPORT_DIMENSION);
+                var exportHeight = Math.max(reportClone.scrollHeight, reportClone.offsetHeight, MIN_EXPORT_DIMENSION);
                 options.html2canvas.windowWidth = exportWidth;
                 options.html2canvas.windowHeight = exportHeight;
 
