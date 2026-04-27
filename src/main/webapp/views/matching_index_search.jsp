@@ -255,7 +255,8 @@
             }
 
             var originalHtml = exportButton.innerHTML;
-            var OFF_SCREEN_LEFT = "-10000px";
+            var OFF_SCREEN_LEFT = "0";
+            var OFF_SCREEN_TOP = "-10000px";
             var MIN_EXPORT_DIMENSION = 1;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
@@ -273,7 +274,7 @@
             exportRoot.id = "clinicalReportPdfExportRoot";
             exportRoot.style.position = "fixed";
             exportRoot.style.left = OFF_SCREEN_LEFT;
-            exportRoot.style.top = "0";
+            exportRoot.style.top = OFF_SCREEN_TOP;
             exportRoot.style.width = "210mm";
             exportRoot.style.background = "#ffffff";
             exportRoot.style.pointerEvents = "none";
