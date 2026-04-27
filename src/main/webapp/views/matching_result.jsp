@@ -3,6 +3,7 @@
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@ page isELIgnored="false" %>
 
 <!doctype html>
@@ -166,6 +167,11 @@
                                      aria-labelledby="savedHeading${loop.index}"
                                      data-parent="#savedMatchingAccordion">
                                     <div class="card-body">
+                                        <c:if test="${fn:contains(fn:toLowerCase(item.name), 'warfarin') and item.calculatedDose != null}">
+                                            <div class="alert alert-primary" role="alert">
+                                                <strong>Calculated Starting Dose: ${item.calculatedDose} mg/week</strong>
+                                            </div>
+                                        </c:if>
                                         <dl class="row mb-0">
                                             <dt class="col-sm-2">Source</dt>
                                             <dd class="col-sm-10">${item.source}</dd>

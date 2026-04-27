@@ -218,3 +218,18 @@ create table sample
     uploaded_by text null
 );
 
+create table patient_profile
+(
+    id int auto_increment
+        primary key,
+    sample_id int not null,
+    age int null,
+    height decimal(10, 2) null,
+    weight decimal(10, 2) null,
+    gender varchar(50) null,
+    constraint fk_patient_profile_sample
+        foreign key (sample_id) references sample (id)
+            on delete cascade,
+    constraint uk_patient_profile_sample
+        unique (sample_id)
+);
