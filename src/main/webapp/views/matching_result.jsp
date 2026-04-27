@@ -255,7 +255,7 @@
             }
 
             var originalHtml = exportButton.innerHTML;
-            var OFF_SCREEN_LEFT = "-100000px";
+            var OFF_SCREEN_LEFT = "-10000px";
             var MIN_EXPORT_DIMENSION = 1;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
