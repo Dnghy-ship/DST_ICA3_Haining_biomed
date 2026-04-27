@@ -260,7 +260,9 @@
             }
 
             var originalHtml = exportButton.innerHTML;
+            // 718px ≈ A4 printable width (190mm) at 96 DPI.
             var A4_CONTENT_WIDTH_PX = 718;
+            // 38px ≈ 10mm at 96 DPI.
             var TEMPLATE_PADDING_PX = 38;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
@@ -281,62 +283,88 @@
                 pagebreak: {mode: ["css", "legacy"]}
             };
 
-            var exportRoot = document.createElement("div");
-            exportRoot.id = "clinicalReportPdfExportRoot";
-            exportRoot.style.position = "fixed";
-            exportRoot.style.left = "0";
-            exportRoot.style.top = "0";
-            exportRoot.style.width = A4_CONTENT_WIDTH_PX + "px";
-            exportRoot.style.background = "#ffffff";
-            exportRoot.style.pointerEvents = "none";
-            exportRoot.style.opacity = "1";
-            exportRoot.style.visibility = "hidden";
-            exportRoot.style.zIndex = "-1";
-            exportRoot.style.overflow = "visible";
-            document.body.appendChild(exportRoot);
-
-            var reportClone = reportTemplate.cloneNode(true);
-            reportClone.id = "clinicalReportPdfTemplateClone";
-            reportClone.classList.remove("pdf-render-template");
-            reportClone.style.position = "relative";
-            reportClone.style.left = "0";
-            reportClone.style.top = "0";
-            reportClone.style.width = A4_CONTENT_WIDTH_PX + "px";
-            reportClone.style.maxWidth = "none";
-            reportClone.style.minWidth = A4_CONTENT_WIDTH_PX + "px";
-            reportClone.style.background = "#ffffff";
-            reportClone.style.padding = TEMPLATE_PADDING_PX + "px";
-            reportClone.style.margin = "0";
-            reportClone.style.pointerEvents = "none";
-            reportClone.style.boxSizing = "border-box";
-            reportClone.style.color = "#212529";
-            reportClone.style.fontSize = ".85rem";
-            reportClone.style.lineHeight = "1.45";
-            reportClone.style.transform = "none";
-            reportClone.style.overflow = "visible";
-            exportRoot.appendChild(reportClone);
-
-            var doExport = function () {
-                html2pdf()
-                    .set(options)
-                    .from(reportClone)
-                    .save()
-                    .catch(function (error) {
-                        console.error("Clinical report PDF export failed:", error);
-                        alert("Unable to export clinical report right now. Please try again.");
-                    })
-                    .finally(function () {
-                        if (exportRoot && exportRoot.parentNode) {
-                            exportRoot.parentNode.removeChild(exportRoot);
-                        }
-                        exportButton.disabled = false;
-                        exportButton.innerHTML = originalHtml;
-                    });
+            var exportFrame = null;
+            var finish = function () {
+                if (exportFrame && exportFrame.parentNode) {
+                    exportFrame.parentNode.removeChild(exportFrame);
+                }
+                exportButton.disabled = false;
+                exportButton.innerHTML = originalHtml;
             };
 
-            window.requestAnimationFrame(function () {
-                window.requestAnimationFrame(doExport);
-            });
+            try {
+                exportFrame = document.createElement("iframe");
+                exportFrame.id = "clinicalReportPdfExportFrame";
+                exportFrame.style.position = "fixed";
+                exportFrame.style.left = "-10000px";
+                exportFrame.style.top = "0";
+                exportFrame.style.width = A4_CONTENT_WIDTH_PX + "px";
+                exportFrame.style.height = "1200px";
+                exportFrame.style.border = "0";
+                exportFrame.style.opacity = "0";
+                exportFrame.style.pointerEvents = "none";
+                document.body.appendChild(exportFrame);
+
+                var frameWindow = exportFrame.contentWindow;
+                var frameDocument = frameWindow && frameWindow.document;
+                if (!frameDocument) {
+                    throw new Error("Unable to initialize iframe export document.");
+                }
+
+                frameDocument.open();
+                frameDocument.write("<!doctype html><html><head><meta charset='utf-8'><title>Clinical Report Export</title></head><body></body></html>");
+                frameDocument.close();
+
+                Array.prototype.forEach.call(
+                    document.querySelectorAll("link[rel='stylesheet'], style"),
+                    function (node) {
+                        frameDocument.head.appendChild(node.cloneNode(true));
+                    }
+                );
+
+                var frameStyle = frameDocument.createElement("style");
+                frameStyle.textContent =
+                    "html,body{margin:0;padding:0;background:#ffffff;overflow:visible;}" +
+                    "#clinicalReportPdfExportRoot{width:" + A4_CONTENT_WIDTH_PX + "px;background:#ffffff;margin:0;padding:0;}" +
+                    "#clinicalReportPdfTemplateClone{width:" + A4_CONTENT_WIDTH_PX + "px;min-width:" + A4_CONTENT_WIDTH_PX + "px;max-width:none;" +
+                    "padding:" + TEMPLATE_PADDING_PX + "px;box-sizing:border-box;background:#ffffff;margin:0;" +
+                    "color:#212529;font-size:.85rem;line-height:1.45;overflow:visible;}";
+                frameDocument.head.appendChild(frameStyle);
+
+                var exportRoot = frameDocument.createElement("div");
+                exportRoot.id = "clinicalReportPdfExportRoot";
+                frameDocument.body.appendChild(exportRoot);
+
+                var reportClone = reportTemplate.cloneNode(true);
+                reportClone.id = "clinicalReportPdfTemplateClone";
+                reportClone.classList.remove("pdf-render-template");
+                reportClone.style.position = "relative";
+                reportClone.style.left = "0";
+                reportClone.style.top = "0";
+                reportClone.style.transform = "none";
+                exportRoot.appendChild(reportClone);
+
+                var doExport = function () {
+                    html2pdf()
+                        .set(options)
+                        .from(reportClone)
+                        .save()
+                        .catch(function (error) {
+                            console.error("Clinical report PDF export failed:", error);
+                            alert("Unable to export clinical report right now. Please try again.");
+                        })
+                        .finally(finish);
+                };
+
+                // Wait two frames so iframe styles and layout are fully settled before capture.
+                frameWindow.requestAnimationFrame(function () {
+                    frameWindow.requestAnimationFrame(doExport);
+                });
+            } catch (error) {
+                console.error("Clinical report PDF export failed:", error);
+                alert("Unable to export clinical report right now. Please try again.");
+                finish();
+            }
         });
     })();
 </script>
