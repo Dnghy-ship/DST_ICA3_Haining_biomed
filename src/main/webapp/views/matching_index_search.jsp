@@ -301,7 +301,7 @@
                 exportFrame.style.width = A4_CONTENT_WIDTH_PX + "px";
                 exportFrame.style.height = "1200px";
                 exportFrame.style.border = "0";
-                exportFrame.style.opacity = "0";
+                exportFrame.style.opacity = "1";
                 exportFrame.style.pointerEvents = "none";
                 document.body.appendChild(exportFrame);
 
@@ -333,6 +333,8 @@
 
                 var exportRoot = frameDocument.createElement("div");
                 exportRoot.id = "clinicalReportPdfExportRoot";
+                exportRoot.style.display = "block";
+                exportRoot.style.visibility = "visible";
                 frameDocument.body.appendChild(exportRoot);
 
                 var reportClone = reportTemplate.cloneNode(true);
@@ -342,12 +344,14 @@
                 reportClone.style.left = "0";
                 reportClone.style.top = "0";
                 reportClone.style.transform = "none";
+                reportClone.style.display = "block";
+                reportClone.style.visibility = "visible";
                 exportRoot.appendChild(reportClone);
 
                 var doExport = function () {
                     html2pdf()
                         .set(options)
-                        .from(reportClone)
+                        .from(exportRoot)
                         .save()
                         .catch(function (error) {
                             console.error("Clinical report PDF export failed:", error);
