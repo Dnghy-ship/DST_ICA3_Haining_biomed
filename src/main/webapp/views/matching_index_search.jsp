@@ -23,7 +23,9 @@
     <link href="<%=request.getContextPath()%>/static/bootstrap/css/bootstrap.css" rel="stylesheet">
     <script src="<%=request.getContextPath()%>/static/jquery/jquery-3.4.1.js"></script>
     <script src="<%=request.getContextPath()%>/static/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+            integrity="sha384-Yv5O+t3uE3hunW8uyrbpPW3iw6/5/Y7HitWJBLgqfMoA36NogMmy+8wWZMpn3HWc"
+            crossorigin="anonymous"></script>
     <!-- Custom styles for this template -->
     <link href="<%=request.getContextPath()%>/static/css/app.css" rel="stylesheet">
     <style>
@@ -92,6 +94,7 @@
                 <button type="button"
                         id="exportClinicalReportBtn"
                         class="btn btn-primary btn-sm"
+                        data-sample-id="<c:out value='${sample.id}'/>"
                         ${empty matched ? 'disabled="disabled"' : ''}>
                     <span class="mr-1">&#11015;</span>Export Clinical Report (PDF)
                 </button>
@@ -257,7 +260,7 @@
 
             var options = {
                 margin: [10, 10, 10, 10],
-                filename: "clinical_report_sample_${sample.id}.pdf",
+                filename: "clinical_report_sample_" + (exportButton.getAttribute("data-sample-id") || "unknown") + ".pdf",
                 image: {type: "jpeg", quality: 0.98},
                 html2canvas: {scale: 2, useCORS: true},
                 jsPDF: {unit: "mm", format: "a4", orientation: "portrait"},
