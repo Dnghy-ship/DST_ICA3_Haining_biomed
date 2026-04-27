@@ -47,6 +47,11 @@
         .pdf-report-table td {
             vertical-align: top;
             word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .pdf-report-table {
+            width: 100%;
+            table-layout: fixed;
         }
         .pdf-summary-block {
             white-space: pre-wrap;
@@ -265,7 +270,7 @@
                 margin: [10, 10, 10, 10],
                 filename: "clinical_report_sample_" + (exportButton.getAttribute("data-sample-id") || "unknown") + ".pdf",
                 image: {type: "jpeg", quality: 0.98},
-                html2canvas: {scale: 1, useCORS: true, backgroundColor: "#ffffff"},
+                html2canvas: {scale: 1, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0},
                 jsPDF: {unit: "mm", format: "a4", orientation: "portrait"},
                 pagebreak: {mode: ["css", "legacy"]}
             };
@@ -297,10 +302,12 @@
             exportRoot.appendChild(reportClone);
 
             var doExport = function () {
-                var exportWidth = Math.max(reportClone.scrollWidth, reportClone.offsetWidth, MIN_EXPORT_DIMENSION);
+                var exportWidth = Math.max(reportClone.offsetWidth, MIN_EXPORT_DIMENSION);
                 var exportHeight = Math.max(reportClone.scrollHeight, reportClone.offsetHeight, MIN_EXPORT_DIMENSION);
                 options.html2canvas.windowWidth = exportWidth;
                 options.html2canvas.windowHeight = exportHeight;
+                options.html2canvas.width = exportWidth;
+                options.html2canvas.height = exportHeight;
 
                 html2pdf()
                     .set(options)
