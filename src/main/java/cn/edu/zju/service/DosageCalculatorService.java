@@ -14,6 +14,8 @@ public class DosageCalculatorService {
     private static final double CYP2C9_PENALTY = -0.5211d;
 
     public Double calculateWarfarinDose(PatientProfile profile, List<VariantCore> patientVariants) {
+        // This PoC intentionally follows the provided simplified formula terms only:
+        // age, height, weight, and placeholder gene penalties.
         if (profile == null || profile.getAge() == null || profile.getHeight() == null || profile.getWeight() == null) {
             return null;
         }

@@ -308,7 +308,7 @@ public class MatchingController {
             return;
         }
         if (gender == null) {
-            request.setAttribute("validateError", "Gender can not be blank");
+            request.setAttribute("validateError", "Gender cannot be blank");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }
