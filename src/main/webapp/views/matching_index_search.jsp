@@ -260,9 +260,7 @@
             }
 
             var originalHtml = exportButton.innerHTML;
-            var EXPORT_CONTAINER_LEFT = "0";
-            var EXPORT_CONTAINER_TOP = "-10000px";
-            var MIN_EXPORT_DIMENSION = 1;
+            var minExportDimension = 1;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
 
@@ -278,36 +276,45 @@
             var exportRoot = document.createElement("div");
             exportRoot.id = "clinicalReportPdfExportRoot";
             exportRoot.style.position = "fixed";
-            exportRoot.style.left = EXPORT_CONTAINER_LEFT;
-            exportRoot.style.top = EXPORT_CONTAINER_TOP;
-            exportRoot.style.width = "210mm";
+            exportRoot.style.left = "0";
+            exportRoot.style.top = "0";
+            exportRoot.style.width = "auto";
             exportRoot.style.background = "#ffffff";
             exportRoot.style.pointerEvents = "none";
             exportRoot.style.opacity = "1";
             exportRoot.style.zIndex = "-1";
+            exportRoot.style.overflow = "visible";
             document.body.appendChild(exportRoot);
 
             var reportClone = reportTemplate.cloneNode(true);
             reportClone.id = "clinicalReportPdfTemplateClone";
-            reportClone.style.position = "static";
-            reportClone.style.left = "auto";
-            reportClone.style.top = "auto";
+            reportClone.classList.remove("pdf-render-template");
+            reportClone.style.position = "relative";
+            reportClone.style.left = "0";
+            reportClone.style.top = "0";
             reportClone.style.width = "190mm";
-            reportClone.style.maxWidth = "190mm";
+            reportClone.style.maxWidth = "none";
+            reportClone.style.minWidth = "190mm";
             reportClone.style.background = "#ffffff";
             reportClone.style.padding = "10mm";
             reportClone.style.margin = "0";
             reportClone.style.pointerEvents = "none";
             reportClone.style.boxSizing = "border-box";
+            reportClone.style.color = "#212529";
+            reportClone.style.fontSize = ".85rem";
+            reportClone.style.lineHeight = "1.45";
+            reportClone.style.transform = "none";
+            reportClone.style.overflow = "visible";
             exportRoot.appendChild(reportClone);
 
             var doExport = function () {
-                var exportWidth = Math.max(reportClone.offsetWidth, MIN_EXPORT_DIMENSION);
-                var exportHeight = Math.max(reportClone.scrollHeight, reportClone.offsetHeight, MIN_EXPORT_DIMENSION);
-                options.html2canvas.windowWidth = exportWidth;
-                options.html2canvas.windowHeight = exportHeight;
+                var cloneRect = reportClone.getBoundingClientRect();
+                var exportWidth = Math.max(cloneRect.width, minExportDimension);
+                var exportHeight = Math.max(reportClone.scrollHeight, cloneRect.height, minExportDimension);
                 options.html2canvas.width = exportWidth;
                 options.html2canvas.height = exportHeight;
+                options.html2canvas.x = 0;
+                options.html2canvas.y = 0;
 
                 html2pdf()
                     .set(options)
