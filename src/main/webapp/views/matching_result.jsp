@@ -260,7 +260,8 @@
             }
 
             var originalHtml = exportButton.innerHTML;
-            var minDimensionThreshold = 100;
+            var A4_CONTENT_WIDTH_PX = 718;
+            var TEMPLATE_PADDING_PX = 38;
             exportButton.disabled = true;
             exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
 
@@ -268,7 +269,14 @@
                 margin: [10, 10, 10, 10],
                 filename: "clinical_report_sample_" + (exportButton.getAttribute("data-sample-id") || "unknown") + ".pdf",
                 image: {type: "jpeg", quality: 0.98},
-                html2canvas: {scale: 1, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0},
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: A4_CONTENT_WIDTH_PX
+                },
                 jsPDF: {unit: "mm", format: "a4", orientation: "portrait"},
                 pagebreak: {mode: ["css", "legacy"]}
             };
@@ -278,10 +286,11 @@
             exportRoot.style.position = "fixed";
             exportRoot.style.left = "0";
             exportRoot.style.top = "0";
-            exportRoot.style.width = "auto";
+            exportRoot.style.width = A4_CONTENT_WIDTH_PX + "px";
             exportRoot.style.background = "#ffffff";
             exportRoot.style.pointerEvents = "none";
             exportRoot.style.opacity = "1";
+            exportRoot.style.visibility = "hidden";
             exportRoot.style.zIndex = "-1";
             exportRoot.style.overflow = "visible";
             document.body.appendChild(exportRoot);
@@ -292,11 +301,11 @@
             reportClone.style.position = "relative";
             reportClone.style.left = "0";
             reportClone.style.top = "0";
-            reportClone.style.width = "190mm";
+            reportClone.style.width = A4_CONTENT_WIDTH_PX + "px";
             reportClone.style.maxWidth = "none";
-            reportClone.style.minWidth = "190mm";
+            reportClone.style.minWidth = A4_CONTENT_WIDTH_PX + "px";
             reportClone.style.background = "#ffffff";
-            reportClone.style.padding = "10mm";
+            reportClone.style.padding = TEMPLATE_PADDING_PX + "px";
             reportClone.style.margin = "0";
             reportClone.style.pointerEvents = "none";
             reportClone.style.boxSizing = "border-box";
@@ -308,14 +317,6 @@
             exportRoot.appendChild(reportClone);
 
             var doExport = function () {
-                var cloneRect = reportClone.getBoundingClientRect();
-                var exportWidth = Math.max(cloneRect.width, minDimensionThreshold);
-                var exportHeight = Math.max(reportClone.scrollHeight, cloneRect.height, minDimensionThreshold);
-                options.html2canvas.width = exportWidth;
-                options.html2canvas.height = exportHeight;
-                options.html2canvas.x = 0;
-                options.html2canvas.y = 0;
-
                 html2pdf()
                     .set(options)
                     .from(reportClone)
