@@ -274,7 +274,7 @@
             reportClone.style.top = "0";
             reportClone.style.width = "190mm";
             reportClone.style.maxWidth = "190mm";
-            reportClone.style.zIndex = "-1";
+            reportClone.style.zIndex = "2147483647";
             reportClone.style.background = "#ffffff";
             reportClone.style.padding = "10mm";
             reportClone.style.margin = "0";
@@ -282,20 +282,26 @@
             reportClone.style.boxSizing = "border-box";
             document.body.appendChild(reportClone);
 
-            html2pdf()
-                .set(options)
-                .from(reportClone)
-                .save()
-                .catch(function () {
-                    alert("Unable to export clinical report right now. Please try again.");
-                })
-                .finally(function () {
-                    if (reportClone && reportClone.parentNode) {
-                        reportClone.parentNode.removeChild(reportClone);
-                    }
-                    exportButton.disabled = false;
-                    exportButton.innerHTML = originalHtml;
-                });
+            var doExport = function () {
+                html2pdf()
+                    .set(options)
+                    .from(reportClone)
+                    .save()
+                    .catch(function () {
+                        alert("Unable to export clinical report right now. Please try again.");
+                    })
+                    .finally(function () {
+                        if (reportClone && reportClone.parentNode) {
+                            reportClone.parentNode.removeChild(reportClone);
+                        }
+                        exportButton.disabled = false;
+                        exportButton.innerHTML = originalHtml;
+                    });
+            };
+
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(doExport);
+            });
         });
     })();
 </script>
