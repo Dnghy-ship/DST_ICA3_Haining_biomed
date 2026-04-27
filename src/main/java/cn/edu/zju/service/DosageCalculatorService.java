@@ -43,10 +43,13 @@ public class DosageCalculatorService {
                     .map(VariantCore::getAnnotation)
                     .map(VariantAnnotation::getGeneSymbol)
                     .orElse(null);
-            if (symbol == null || symbol.isBlank()) {
+            if (symbol == null) {
                 continue;
             }
             String normalized = symbol.toUpperCase(Locale.ROOT);
+            if (normalized.isBlank()) {
+                continue;
+            }
             if (normalized.contains("VKORC1")) {
                 hasVkorc1 = true;
             }
