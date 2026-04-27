@@ -267,14 +267,32 @@
                 pagebreak: {mode: ["css", "legacy"]}
             };
 
+            var reportClone = reportTemplate.cloneNode(true);
+            reportClone.id = "clinicalReportPdfTemplateClone";
+            reportClone.style.position = "fixed";
+            reportClone.style.left = "0";
+            reportClone.style.top = "0";
+            reportClone.style.width = "190mm";
+            reportClone.style.maxWidth = "190mm";
+            reportClone.style.zIndex = "-1";
+            reportClone.style.background = "#ffffff";
+            reportClone.style.padding = "10mm";
+            reportClone.style.margin = "0";
+            reportClone.style.pointerEvents = "none";
+            reportClone.style.boxSizing = "border-box";
+            document.body.appendChild(reportClone);
+
             html2pdf()
                 .set(options)
-                .from(reportTemplate)
+                .from(reportClone)
                 .save()
                 .catch(function () {
                     alert("Unable to export clinical report right now. Please try again.");
                 })
                 .finally(function () {
+                    if (reportClone && reportClone.parentNode) {
+                        reportClone.parentNode.removeChild(reportClone);
+                    }
                     exportButton.disabled = false;
                     exportButton.innerHTML = originalHtml;
                 });
