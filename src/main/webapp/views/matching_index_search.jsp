@@ -21,14 +21,44 @@
 
     <!-- Bootstrap core CSS -->
     <link href="<%=request.getContextPath()%>/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <script src="<%=request.getContextPath()%>/static/jquery/jquery-3.4.1.js"></script>
     <script src="<%=request.getContextPath()%>/static/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Custom styles for this template -->
     <link href="<%=request.getContextPath()%>/static/css/app.css" rel="stylesheet">
     <style>
         .accordion .card-header { cursor: pointer; }
         .gene-tag { font-size: .75rem; }
         .score-badge { font-size: .8rem; }
+        .pdf-render-template {
+            position: absolute;
+            left: -10000px;
+            top: 0;
+            width: 190mm;
+            background: #fff;
+            color: #212529;
+            padding: 10mm;
+            font-size: .85rem;
+            line-height: 1.45;
+        }
+        .pdf-render-template h3,
+        .pdf-render-template h5 {
+            margin-bottom: .5rem;
+        }
+        .pdf-report-table th,
+        .pdf-report-table td {
+            vertical-align: top;
+            word-break: break-word;
+        }
+        .pdf-summary-block {
+            white-space: pre-wrap;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            padding: .75rem;
+            margin-bottom: .75rem;
+            background: #f8f9fa;
+        }
     </style>
 </head>
 <body>
@@ -60,6 +90,12 @@
                 <h4 class="mb-0">Matched Drug Labels
                     <span class="badge badge-secondary ml-2">${matched.size()} result(s)</span>
                 </h4>
+                <button type="button"
+                        id="exportClinicalReportBtn"
+                        class="btn btn-primary btn-sm"
+                        ${empty matched ? 'disabled="disabled"' : ''}>
+                    <i class="fa-solid fa-file-arrow-down mr-1"></i>Export Clinical Report (PDF)
+                </button>
             </div>
 
             <c:choose>
@@ -126,8 +162,122 @@
                     <div class="alert alert-warning">No drug labels matched for this sample's variants.</div>
                 </c:otherwise>
             </c:choose>
+
+            <div id="clinicalReportPdfTemplate" class="pdf-render-template">
+                <div class="border-bottom pb-2 mb-3">
+                    <h3 class="mb-1">Clinical Pharmacogenomic Matching Report</h3>
+                    <div class="text-muted">Precision Medicine Matching System</div>
+                </div>
+
+                <div class="mb-3">
+                    <h5>Patient Sample Information</h5>
+                    <table class="table table-sm table-bordered mb-0">
+                        <tbody>
+                        <tr>
+                            <th style="width: 30%;">Sample ID</th>
+                            <td>${sample.id}</td>
+                        </tr>
+                        <tr>
+                            <th>Uploaded At</th>
+                            <td>${sample.createdAt}</td>
+                        </tr>
+                        <tr>
+                            <th>Uploaded By</th>
+                            <td>${sample.uploadedBy}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Matched Labels</th>
+                            <td>${matched.size()}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="mb-2">Matched Drug Label Summary</h5>
+                <c:choose>
+                    <c:when test="${not empty matched}">
+                        <table class="table table-sm table-bordered pdf-report-table mb-3">
+                            <thead class="thead-light">
+                            <tr>
+                                <th>Drug Label</th>
+                                <th>Score</th>
+                                <th>Recommendation</th>
+                                <th>Matched Genes</th>
+                                <th>Source</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <c:forEach items="${matched}" var="item">
+                                <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.score}</td>
+                                    <td><c:out value="${empty item.recommendationLevel ? 'Unrated' : item.recommendationLevel}"/></td>
+                                    <td><c:forEach items="${item.matchedGenes}" var="gene" varStatus="gs">${gene}<c:if test="${!gs.last}">, </c:if></c:forEach></td>
+                                    <td>${item.source}</td>
+                                </tr>
+                            </c:forEach>
+                            </tbody>
+                        </table>
+
+                        <h5 class="mb-2">Clinical Detail Notes</h5>
+                        <c:forEach items="${matched}" var="item" varStatus="loop">
+                            <div class="border rounded p-2 mb-2">
+                                <div><strong>${loop.count}. ${item.name}</strong></div>
+                                <div><strong>Dosing Info:</strong> ${item.dosingInformation}</div>
+                                <div><strong>Alternate Drug Available:</strong> ${item.alternateDrugAvailable}</div>
+                                <div class="mt-2"><strong>Summary</strong></div>
+                                <div class="pdf-summary-block">${item.summaryMarkdown}</div>
+                            </div>
+                        </c:forEach>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="alert alert-warning mb-0">No drug labels matched for this sample's variants.</div>
+                    </c:otherwise>
+                </c:choose>
+            </div>
         </main>
     </div>
 </div>
+<script>
+    (function () {
+        var exportButton = document.getElementById("exportClinicalReportBtn");
+        var reportTemplate = document.getElementById("clinicalReportPdfTemplate");
+        if (!exportButton || !reportTemplate) {
+            return;
+        }
+
+        exportButton.addEventListener("click", function () {
+            if (typeof html2pdf === "undefined") {
+                alert("PDF export library failed to load. Please refresh and try again.");
+                return;
+            }
+
+            var originalHtml = exportButton.innerHTML;
+            exportButton.disabled = true;
+            exportButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Generating PDF...';
+
+            var options = {
+                margin: [10, 10, 10, 10],
+                filename: "clinical_report_sample_${sample.id}.pdf",
+                image: {type: "jpeg", quality: 0.98},
+                html2canvas: {scale: 2, useCORS: true},
+                jsPDF: {unit: "mm", format: "a4", orientation: "portrait"},
+                pagebreak: {mode: ["css", "legacy"]}
+            };
+
+            html2pdf()
+                .set(options)
+                .from(reportTemplate)
+                .save()
+                .catch(function () {
+                    alert("Unable to export clinical report right now. Please try again.");
+                })
+                .finally(function () {
+                    exportButton.disabled = false;
+                    exportButton.innerHTML = originalHtml;
+                });
+        });
+    })();
+</script>
 </body>
 </html>
