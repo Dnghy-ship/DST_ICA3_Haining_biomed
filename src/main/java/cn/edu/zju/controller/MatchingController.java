@@ -157,11 +157,11 @@ public class MatchingController {
             if (drugLabel == null) {
                 continue;
             }
-            LabelGeneInfo labelGeneInfo = extractLabelGeneInfo(drugLabel);
+            LabelGeneInfo geneInfo = extractLabelGeneInfo(drugLabel);
             LinkedHashSet<String> matchedGenes = new LinkedHashSet<>();
-            if (!labelGeneInfo.genes.isEmpty()) {
+            if (!geneInfo.genes.isEmpty()) {
                 for (String patientGene : patientGenes) {
-                    if (labelGeneInfo.genes.contains(patientGene)) {
+                    if (geneInfo.genes.contains(patientGene)) {
                         matchedGenes.add(patientGene);
                     }
                 }
@@ -174,8 +174,8 @@ public class MatchingController {
                 }
             }
             if (!matchedGenes.isEmpty()) {
-                int evidenceScore = calculateEvidenceScore(buildEvidenceText(drugLabel));
-                int score = calculateTotalScore(drugLabel, evidenceScore, matchedGenes.size(), labelGeneInfo.structured);
+                int evidenceScore = calculateEvidenceScore(buildLabelSearchText(drugLabel));
+                int score = calculateTotalScore(drugLabel, evidenceScore, matchedGenes.size(), geneInfo.structured);
                 String recLevel = getRecommendationLevel(evidenceScore);
                 matchedLabels.add(new MatchedDrugLabel(drugLabel, score, recLevel, new ArrayList<>(matchedGenes)));
             }
@@ -324,10 +324,6 @@ public class MatchingController {
             addGeneFromField(obj, "name", genes);
             addGeneFromField(obj, "geneSymbol", genes);
         }
-    }
-
-    private String buildEvidenceText(DrugLabel label) {
-        return buildLabelSearchText(label);
     }
 
     private String buildLabelSearchText(DrugLabel label) {
