@@ -15,6 +15,7 @@ import cn.edu.zju.dao.PatientProfileDao;
 import cn.edu.zju.dao.SampleDao;
 import cn.edu.zju.service.DosageCalculatorService;
 import cn.edu.zju.servlet.DispatchServlet;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -47,6 +48,7 @@ public class MatchingController {
     private static final Pattern EVIDENCE_LEVEL_2A = Pattern.compile("\\b(LEVEL\\s*2A|2A)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern EVIDENCE_LEVEL_2B = Pattern.compile("\\b(LEVEL\\s*2B|2B)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern EVIDENCE_LEVEL_3 = Pattern.compile("\\bLEVEL\\s*3\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
     private static final String BENIGN_SYNONYMOUS_SNV = "synonymous snv";
 
     private SampleDao sampleDao = new SampleDao();
@@ -155,52 +157,76 @@ public class MatchingController {
             if (drugLabel == null) {
                 continue;
             }
-            Set<String> labelGenes = extractGenesFromLabelSummary(drugLabel);
-            if (labelGenes.isEmpty()) {
-                continue;
-            }
-            List<String> matchedGenes = new ArrayList<>();
-            for (String patientGene : patientGenes) {
-                if (labelGenes.contains(patientGene)) {
-                    matchedGenes.add(patientGene);
+            LabelGeneInfo labelGeneInfo = extractLabelGeneInfo(drugLabel);
+            LinkedHashSet<String> matchedGenes = new LinkedHashSet<>();
+            if (!labelGeneInfo.genes.isEmpty()) {
+                for (String patientGene : patientGenes) {
+                    if (labelGeneInfo.genes.contains(patientGene)) {
+                        matchedGenes.add(patientGene);
+                    }
+                }
+            } else {
+                String labelText = buildLabelSearchText(drugLabel);
+                for (String patientGene : patientGenes) {
+                    if (containsGeneToken(labelText, patientGene)) {
+                        matchedGenes.add(patientGene);
+                    }
                 }
             }
             if (!matchedGenes.isEmpty()) {
-                int score = calculateScore(drugLabel, patientGenes);
-                String recLevel = getRecommendationLevel(score);
-                matchedLabels.add(new MatchedDrugLabel(drugLabel, score, recLevel, matchedGenes));
+                int evidenceScore = calculateEvidenceScore(buildEvidenceText(drugLabel));
+                int score = calculateTotalScore(drugLabel, evidenceScore, matchedGenes.size(), labelGeneInfo.structured);
+                String recLevel = getRecommendationLevel(evidenceScore);
+                matchedLabels.add(new MatchedDrugLabel(drugLabel, score, recLevel, new ArrayList<>(matchedGenes)));
             }
         }
         return matchedLabels;
     }
 
-    private int calculateScore(DrugLabel label, Set<String> patientGenes) {
-        if (label == null || patientGenes == null || patientGenes.isEmpty()) {
+    private int calculateEvidenceScore(String evidenceText) {
+        if (evidenceText == null || evidenceText.isBlank()) {
             return 0;
         }
-        String summary = Optional.ofNullable(label.getSummaryMarkdown()).orElse("");
-        int evidenceScore = 0;
-        if (EVIDENCE_LEVEL_1A.matcher(summary).find()) {
-            evidenceScore = 10;
-        } else if (EVIDENCE_LEVEL_1B.matcher(summary).find()) {
-            evidenceScore = 8;
-        } else if (EVIDENCE_LEVEL_2A.matcher(summary).find()) {
-            evidenceScore = 5;
-        } else if (EVIDENCE_LEVEL_2B.matcher(summary).find()) {
-            evidenceScore = 3;
-        } else if (EVIDENCE_LEVEL_3.matcher(summary).find()) {
-            evidenceScore = 1;
+        if (EVIDENCE_LEVEL_1A.matcher(evidenceText).find()) {
+            return 10;
         }
-
-        if (label.isDosingInformation()) {
-            evidenceScore += 4;
+        if (EVIDENCE_LEVEL_1B.matcher(evidenceText).find()) {
+            return 8;
         }
-        return Math.max(evidenceScore, 1);
+        if (EVIDENCE_LEVEL_2A.matcher(evidenceText).find()) {
+            return 5;
+        }
+        if (EVIDENCE_LEVEL_2B.matcher(evidenceText).find()) {
+            return 3;
+        }
+        if (EVIDENCE_LEVEL_3.matcher(evidenceText).find()) {
+            return 1;
+        }
+        return 0;
     }
 
-    private String getRecommendationLevel(int score) {
-        if (score >= 8) return "Strong";
-        if (score >= 4) return "Moderate";
+    private int calculateTotalScore(DrugLabel label,
+                                    int evidenceScore,
+                                    int matchedGeneCount,
+                                    boolean structuredGenes) {
+        int score = evidenceScore > 0 ? evidenceScore : 1;
+        score += Math.min(matchedGeneCount, 3);
+        if (label != null && label.isDosingInformation()) {
+            score += 2;
+        }
+        if (structuredGenes) {
+            score += 2;
+        }
+        return score;
+    }
+
+    private String getRecommendationLevel(int evidenceScore) {
+        if (evidenceScore >= 8) {
+            return "Strong";
+        }
+        if (evidenceScore >= 4) {
+            return "Moderate";
+        }
         return "Optional";
     }
 
@@ -233,18 +259,123 @@ public class MatchingController {
         return genes;
     }
 
-    private Set<String> extractGenesFromLabelSummary(DrugLabel label) {
-        String summary = Optional.ofNullable(label)
-                .map(DrugLabel::getSummaryMarkdown)
-                .orElse("");
-        Set<String> summaryTokens = new LinkedHashSet<>();
-        String[] split = summary.toUpperCase(Locale.ROOT).split("[^A-Z0-9_-]+");
-        for (String token : split) {
-            if (!token.isBlank()) {
-                summaryTokens.add(token);
+    private LabelGeneInfo extractLabelGeneInfo(DrugLabel label) {
+        Set<String> genes = new LinkedHashSet<>();
+        boolean structured = false;
+        if (label == null) {
+            return new LabelGeneInfo(genes, false);
+        }
+        String raw = label.getRaw();
+        if (raw != null && !raw.isBlank()) {
+            try {
+                JsonElement root = JsonParser.parseString(raw);
+                if (root.isJsonObject()) {
+                    JsonObject obj = root.getAsJsonObject();
+                    addGenesFromKey(obj, "relatedGenes", genes);
+                    addGenesFromKey(obj, "genes", genes);
+                    addGenesFromKey(obj, "geneSymbols", genes);
+                    addGeneFromField(obj, "geneSymbol", genes);
+                    if (!genes.isEmpty()) {
+                        structured = true;
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Failed to parse raw drug label JSON for id={}", label.getId(), e);
             }
         }
-        return summaryTokens;
+        return new LabelGeneInfo(genes, structured);
+    }
+
+    private void addGenesFromKey(JsonObject obj, String key, Set<String> genes) {
+        if (obj == null || !obj.has(key)) {
+            return;
+        }
+        addGenesFromElement(obj.get(key), genes);
+    }
+
+    private void addGeneFromField(JsonObject obj, String field, Set<String> genes) {
+        if (obj == null || !obj.has(field)) {
+            return;
+        }
+        JsonElement element = obj.get(field);
+        if (element != null && element.isJsonPrimitive()) {
+            addNormalizedGene(element.getAsString(), genes);
+        }
+    }
+
+    private void addGenesFromElement(JsonElement element, Set<String> genes) {
+        if (element == null || element.isJsonNull()) {
+            return;
+        }
+        if (element.isJsonArray()) {
+            JsonArray array = element.getAsJsonArray();
+            for (JsonElement item : array) {
+                addGenesFromElement(item, genes);
+            }
+            return;
+        }
+        if (element.isJsonPrimitive()) {
+            addNormalizedGene(element.getAsString(), genes);
+            return;
+        }
+        if (element.isJsonObject()) {
+            JsonObject obj = element.getAsJsonObject();
+            addGeneFromField(obj, "symbol", genes);
+            addGeneFromField(obj, "name", genes);
+            addGeneFromField(obj, "geneSymbol", genes);
+        }
+    }
+
+    private String buildEvidenceText(DrugLabel label) {
+        return buildLabelSearchText(label);
+    }
+
+    private String buildLabelSearchText(DrugLabel label) {
+        if (label == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        appendLabelText(builder, label.getSummaryMarkdown());
+        appendLabelText(builder, label.getTextMarkdown());
+        appendLabelText(builder, label.getPrescribingMarkdown());
+        return stripHtml(builder.toString()).toUpperCase(Locale.ROOT);
+    }
+
+    private void appendLabelText(StringBuilder builder, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append(' ');
+        }
+        builder.append(value);
+    }
+
+    private String stripHtml(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String stripped = HTML_TAG.matcher(value).replaceAll(" ");
+        return stripped.replace("&nbsp;", " ").replace("&amp;", "&");
+    }
+
+    private boolean containsGeneToken(String labelText, String gene) {
+        if (labelText == null || labelText.isBlank() || gene == null || gene.isBlank()) {
+            return false;
+        }
+        String haystack = labelText.toUpperCase(Locale.ROOT);
+        String needle = gene.toUpperCase(Locale.ROOT);
+        int index = haystack.indexOf(needle);
+        while (index >= 0) {
+            boolean leftOk = index == 0 || !Character.isLetterOrDigit(haystack.charAt(index - 1));
+            int end = index + needle.length();
+            boolean rightOk = end >= haystack.length() || !Character.isLetterOrDigit(haystack.charAt(end));
+            if (leftOk && rightOk) {
+                return true;
+            }
+            index = haystack.indexOf(needle, end);
+        }
+        return false;
     }
 
     private String normalizeGene(String value) {
@@ -252,7 +383,28 @@ public class MatchingController {
             return null;
         }
         String normalized = value.trim().toUpperCase(Locale.ROOT);
+        int alleleIndex = normalized.indexOf('*');
+        if (alleleIndex > 0) {
+            normalized = normalized.substring(0, alleleIndex);
+        }
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private void addNormalizedGene(String value, Set<String> genes) {
+        String normalized = normalizeGene(value);
+        if (normalized != null) {
+            genes.add(normalized);
+        }
+    }
+
+    private static class LabelGeneInfo {
+        private final Set<String> genes;
+        private final boolean structured;
+
+        private LabelGeneInfo(Set<String> genes, boolean structured) {
+            this.genes = genes;
+            this.structured = structured;
+        }
     }
 
     private boolean isBenignSynonymousVariant(VariantCore variant) {
