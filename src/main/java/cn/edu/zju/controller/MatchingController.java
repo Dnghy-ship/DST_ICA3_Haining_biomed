@@ -83,7 +83,7 @@ public class MatchingController {
     public void matching(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String sampleIdParameter = request.getParameter("sampleId");
         if (sampleIdParameter == null) {
-            response.sendRedirect("samples");
+            samples(request, response);
             return;
         }
         Integer sampleId = null;
@@ -355,6 +355,11 @@ public class MatchingController {
             }
         } catch (ArrayIndexOutOfBoundsException e) {
             request.setAttribute("validateError", "annovar output file is invalid");
+            request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+            return;
+        } catch (RuntimeException e) {
+            log.error("Failed to process annovar output for sample {}", sampleId, e);
+            request.setAttribute("validateError", "Failed to process annovar output file");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }
