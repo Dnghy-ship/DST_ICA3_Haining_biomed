@@ -331,11 +331,6 @@ public class MatchingController {
         String content;
         try (InputStream inputStream = requestPart.getInputStream()) {
             byte[] bytes = inputStream.readAllBytes();
-            if (bytes.length == 0) {
-                request.setAttribute("validateError", "annovar output file can not be blank");
-                request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
-                return;
-            }
             content = new String(bytes, StandardCharsets.UTF_8);
         }
         int sampleId = sampleDao.save(uploadedBy);

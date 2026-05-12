@@ -102,7 +102,9 @@ public class AnnovarDao extends BaseDao {
                     log.error("Rollback failed when saving variant data for sample {}", sampleId, rollbackException);
                 }
                 log.error("Failed to save variant data for sample {} due to runtime error", sampleId, e);
-                throw e;
+                if (e instanceof ArrayIndexOutOfBoundsException) {
+                    throw e;
+                }
             }
         });
         return success.get();
