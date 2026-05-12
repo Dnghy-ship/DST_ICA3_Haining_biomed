@@ -384,7 +384,7 @@ public class MatchingController {
         }
         String normalized = value.trim().toUpperCase(Locale.ROOT);
         int alleleIndex = normalized.indexOf('*');
-        if (alleleIndex > 0) {
+        if (alleleIndex >= 0) {
             normalized = normalized.substring(0, alleleIndex);
         }
         return normalized.isEmpty() ? null : normalized;
