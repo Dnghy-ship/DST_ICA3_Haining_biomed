@@ -2,14 +2,18 @@ package cn.edu.zju.controller;
 
 import cn.edu.zju.bean.DrugLabel;
 import cn.edu.zju.bean.MatchedDrugLabel;
+import cn.edu.zju.bean.PatientProfile;
 import cn.edu.zju.bean.Sample;
+import cn.edu.zju.bean.WarfarinDoseSummary;
 import cn.edu.zju.bean.VariantAnnotation;
 import cn.edu.zju.bean.VariantBioDetails;
 import cn.edu.zju.bean.VariantCore;
 import cn.edu.zju.dao.AnnovarDao;
 import cn.edu.zju.dao.DrugLabelDao;
 import cn.edu.zju.dao.MatchingResultDao;
+import cn.edu.zju.dao.PatientProfileDao;
 import cn.edu.zju.dao.SampleDao;
+import cn.edu.zju.service.DosageCalculatorService;
 import cn.edu.zju.servlet.DispatchServlet;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -23,6 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -47,6 +52,8 @@ public class MatchingController {
     private AnnovarDao annovarDao = new AnnovarDao();
     private DrugLabelDao drugLabelDao = new DrugLabelDao();
     private MatchingResultDao matchingResultDao = new MatchingResultDao();
+    private PatientProfileDao patientProfileDao = new PatientProfileDao();
+    private DosageCalculatorService dosageCalculatorService = new DosageCalculatorService();
 
     public void register(DispatchServlet.Dispatcher dispatcher) {
         dispatcher.registerPostMapping("/upload", this::uploadAnnovarOutput);
@@ -93,6 +100,9 @@ public class MatchingController {
         }
         List<DrugLabel> drugLabels = drugLabelDao.findAll();
         List<MatchedDrugLabel> matched = doMatch(drugLabels, patientGenes);
+        PatientProfile profile = patientProfileDao.findBySampleId(sampleId);
+        boolean warfarinMatched = applyWarfarinDose(profile, matched, variants);
+        WarfarinDoseSummary doseSummary = dosageCalculatorService.buildWarfarinDoseSummary(profile, variants, warfarinMatched);
         matched.sort(Comparator.comparingInt(MatchedDrugLabel::getScore).reversed());
         try {
             matchingResultDao.saveResults(sampleId, matched);
@@ -101,6 +111,8 @@ public class MatchingController {
         }
         request.setAttribute("matched", matched);
         request.setAttribute("sample", sampleDao.findById(sampleId));
+        request.setAttribute("patientProfile", profile);
+        request.setAttribute("warfarinDoseSummary", doseSummary);
         request.getRequestDispatcher("/views/matching_index_search.jsp").forward(request, response);
     }
 
@@ -122,8 +134,14 @@ public class MatchingController {
             response.sendRedirect("matching?sampleId=" + sampleId);
             return;
         }
+        List<VariantCore> variants = annovarDao.findAnnotationsBySampleId(sampleId);
+        PatientProfile profile = patientProfileDao.findBySampleId(sampleId);
+        boolean warfarinMatched = applyWarfarinDose(profile, matched, variants);
+        WarfarinDoseSummary doseSummary = dosageCalculatorService.buildWarfarinDoseSummary(profile, variants, warfarinMatched);
         request.setAttribute("matched", matched);
         request.setAttribute("sample", sampleDao.findById(sampleId));
+        request.setAttribute("patientProfile", profile);
+        request.setAttribute("warfarinDoseSummary", doseSummary);
         request.getRequestDispatcher("/views/matching_result.jsp").forward(request, response);
     }
 
@@ -279,6 +297,30 @@ public class MatchingController {
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }
+        Integer age = parseInteger(request.getParameter("age"));
+        BigDecimal height = parsePositiveDecimal(request.getParameter("height"));
+        BigDecimal weight = parsePositiveDecimal(request.getParameter("weight"));
+        String gender = normalizeText(request.getParameter("gender"));
+        if (age == null || age <= 0) {
+            request.setAttribute("validateError", "Age is required and must be a positive integer");
+            request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+            return;
+        }
+        if (height == null) {
+            request.setAttribute("validateError", "Height is required and must be a positive number");
+            request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+            return;
+        }
+        if (weight == null) {
+            request.setAttribute("validateError", "Weight is required and must be a positive number");
+            request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+            return;
+        }
+        if (gender == null) {
+            request.setAttribute("validateError", "Gender cannot be blank");
+            request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+            return;
+        }
         Part requestPart = request.getPart("annovar");
         if (requestPart == null) {
             request.setAttribute("validateError", "annovar output file can not be blank");
@@ -289,6 +331,13 @@ public class MatchingController {
         byte[] bytes = inputStream.readAllBytes();
         String content = new String(bytes);
         int sampleId = sampleDao.save(uploadedBy);
+        PatientProfile profile = new PatientProfile();
+        profile.setSampleId(sampleId);
+        profile.setAge(age);
+        profile.setHeight(height);
+        profile.setWeight(weight);
+        profile.setGender(gender);
+        patientProfileDao.save(profile);
         try {
             annovarDao.save(sampleId, content);
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -297,5 +346,58 @@ public class MatchingController {
             return;
         }
         response.sendRedirect("matching?sampleId=" + sampleId);
+    }
+
+    private boolean applyWarfarinDose(PatientProfile profile, List<MatchedDrugLabel> matched, List<VariantCore> variants) {
+        if (matched == null || matched.isEmpty()) {
+            return false;
+        }
+        boolean warfarinMatched = false;
+        for (MatchedDrugLabel item : matched) {
+            if (item == null || item.getName() == null) {
+                continue;
+            }
+            if (!item.getName().toLowerCase(Locale.ROOT).contains("warfarin")) {
+                continue;
+            }
+            warfarinMatched = true;
+            Double dose = dosageCalculatorService.calculateWarfarinDose(profile, variants);
+            item.setCalculatedDose(dose);
+        }
+        return warfarinMatched;
+    }
+
+    private Integer parseInteger(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(raw.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private BigDecimal parsePositiveDecimal(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            BigDecimal value = new BigDecimal(raw.trim());
+            if (value.compareTo(BigDecimal.ZERO) <= 0) {
+                return null;
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 }

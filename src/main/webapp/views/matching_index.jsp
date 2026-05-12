@@ -68,6 +68,28 @@
             </div>
             <div class="table-responsive">
                 <form method="post" action="upload" enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label for="age">Age</label>
+                            <input type="number" min="1" class="form-control" id="age" name="age" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="height">Height (cm)</label>
+                            <input type="number" min="1" step="0.1" class="form-control" id="height" name="height" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="weight">Weight (kg)</label>
+                            <input type="number" min="1" step="0.1" class="form-control" id="weight" name="weight" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender" class="form-control" required>
+                                <option value="">Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="exampleFormControlFile1">Annovar Output</label>
                         <input type="file" class="form-control-file" id="exampleFormControlFile1" name="annovar">

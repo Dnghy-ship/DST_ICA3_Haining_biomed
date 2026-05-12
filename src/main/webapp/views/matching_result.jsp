@@ -3,6 +3,7 @@
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@ page isELIgnored="false" %>
 
 <!doctype html>
@@ -110,6 +111,63 @@
                 <div><strong>Uploaded by:</strong> ${sample.uploadedBy}</div>
             </div>
 
+            <div class="card mb-3">
+                <div class="card-header">Patient Clinical Profile</div>
+                <div class="card-body">
+                    <c:choose>
+                        <c:when test="${not empty patientProfile}">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Age</dt>
+                                <dd class="col-sm-9">${patientProfile.age}</dd>
+                                <dt class="col-sm-3">Height</dt>
+                                <dd class="col-sm-9">${patientProfile.height} cm</dd>
+                                <dt class="col-sm-3">Weight</dt>
+                                <dd class="col-sm-9">${patientProfile.weight} kg</dd>
+                                <dt class="col-sm-3">Gender</dt>
+                                <dd class="col-sm-9">${patientProfile.gender}</dd>
+                            </dl>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="text-muted">No patient profile found for this sample.</div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Personalized Warfarin Dose (PoC)</div>
+                <div class="card-body">
+                    <c:choose>
+                        <c:when test="${warfarinDoseSummary != null && warfarinDoseSummary.weeklyDose != null}">
+                            <div class="alert alert-primary mb-2" role="alert">
+                                <strong>Calculated Starting Dose: ${warfarinDoseSummary.formattedDose} mg/week</strong>
+                            </div>
+                            <div class="mb-1">
+                                <strong>Genotype Flags:</strong>
+                                <c:choose>
+                                    <c:when test="${warfarinDoseSummary.hasVkorc1 or warfarinDoseSummary.hasCyp2c9}">
+                                        <c:if test="${warfarinDoseSummary.hasVkorc1}">
+                                            <span class="badge badge-danger ml-1">VKORC1</span>
+                                        </c:if>
+                                        <c:if test="${warfarinDoseSummary.hasCyp2c9}">
+                                            <span class="badge badge-danger ml-1">CYP2C9</span>
+                                        </c:if>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="text-muted ml-1">None detected</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                            <div class="mb-1"><strong>Gene Penalty:</strong> ${warfarinDoseSummary.formattedGenePenalty}</div>
+                            <div class="text-muted small">${warfarinDoseSummary.statusMessage}</div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="text-muted">${warfarinDoseSummary.statusMessage}</div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+
             <!-- Matched Drug Labels (Saved) -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">Matched Drug Labels
@@ -166,6 +224,11 @@
                                      aria-labelledby="savedHeading${loop.index}"
                                      data-parent="#savedMatchingAccordion">
                                     <div class="card-body">
+                                        <c:if test="${fn:contains(fn:toLowerCase(item.name), 'warfarin') and item.calculatedDose != null}">
+                                            <div class="alert alert-primary" role="alert">
+                                                <strong>Calculated Starting Dose: ${item.calculatedDose} mg/week</strong>
+                                            </div>
+                                        </c:if>
                                         <dl class="row mb-0">
                                             <dt class="col-sm-2">Source</dt>
                                             <dd class="col-sm-10">${item.source}</dd>
@@ -217,6 +280,62 @@
                         </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div class="mb-3">
+                    <h5>Patient Clinical Profile</h5>
+                    <c:choose>
+                        <c:when test="${not empty patientProfile}">
+                            <table class="table table-sm table-bordered mb-0">
+                                <tbody>
+                                <tr>
+                                    <th style="width: 30%;">Age</th>
+                                    <td>${patientProfile.age}</td>
+                                </tr>
+                                <tr>
+                                    <th>Height</th>
+                                    <td>${patientProfile.height} cm</td>
+                                </tr>
+                                <tr>
+                                    <th>Weight</th>
+                                    <td>${patientProfile.weight} kg</td>
+                                </tr>
+                                <tr>
+                                    <th>Gender</th>
+                                    <td>${patientProfile.gender}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="text-muted">No patient profile available for this sample.</div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <div class="mb-3">
+                    <h5>Personalized Warfarin Dose (PoC)</h5>
+                    <div class="pdf-summary-block">
+                        <c:choose>
+                            <c:when test="${warfarinDoseSummary != null && warfarinDoseSummary.weeklyDose != null}">
+                                <div><strong>Calculated Starting Dose:</strong> ${warfarinDoseSummary.formattedDose} mg/week</div>
+                                <div><strong>Genotype Flags:</strong>
+                                    <c:choose>
+                                        <c:when test="${warfarinDoseSummary.hasVkorc1 or warfarinDoseSummary.hasCyp2c9}">
+                                            <c:if test="${warfarinDoseSummary.hasVkorc1}"> VKORC1</c:if>
+                                            <c:if test="${warfarinDoseSummary.hasCyp2c9}"> CYP2C9</c:if>
+                                        </c:when>
+                                        <c:otherwise> None detected</c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div><strong>Gene Penalty:</strong> ${warfarinDoseSummary.formattedGenePenalty}</div>
+                                <div class="text-muted">${warfarinDoseSummary.statusMessage}</div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="text-muted">${warfarinDoseSummary.statusMessage}</div>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
                 </div>
 
                 <h5 class="mb-2">Matched Drug Label Summary</h5>

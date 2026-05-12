@@ -7,6 +7,7 @@ public class MatchedDrugLabel extends DrugLabel {
     private int score;
     private String recommendationLevel;
     private List<String> matchedGenes;
+    private Double calculatedDose;
 
     public MatchedDrugLabel(DrugLabel label, int score, String recommendationLevel, List<String> matchedGenes) {
         super(label.getId(), label.getName(), label.getObjCls(),
@@ -41,5 +42,13 @@ public class MatchedDrugLabel extends DrugLabel {
 
     public void setMatchedGenes(List<String> matchedGenes) {
         this.matchedGenes = matchedGenes;
+    }
+
+    public Double getCalculatedDose() {
+        return calculatedDose;
+    }
+
+    public void setCalculatedDose(Double calculatedDose) {
+        this.calculatedDose = calculatedDose;
     }
 }
