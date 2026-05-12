@@ -4,6 +4,7 @@ import cn.edu.zju.bean.DrugLabel;
 import cn.edu.zju.bean.MatchedDrugLabel;
 import cn.edu.zju.bean.PatientProfile;
 import cn.edu.zju.bean.Sample;
+import cn.edu.zju.bean.WarfarinDoseSummary;
 import cn.edu.zju.bean.VariantAnnotation;
 import cn.edu.zju.bean.VariantBioDetails;
 import cn.edu.zju.bean.VariantCore;
@@ -99,7 +100,9 @@ public class MatchingController {
         }
         List<DrugLabel> drugLabels = drugLabelDao.findAll();
         List<MatchedDrugLabel> matched = doMatch(drugLabels, patientGenes);
-        applyWarfarinDose(sampleId, matched, variants);
+        PatientProfile profile = patientProfileDao.findBySampleId(sampleId);
+        boolean warfarinMatched = applyWarfarinDose(profile, matched, variants);
+        WarfarinDoseSummary doseSummary = dosageCalculatorService.buildWarfarinDoseSummary(profile, variants, warfarinMatched);
         matched.sort(Comparator.comparingInt(MatchedDrugLabel::getScore).reversed());
         try {
             matchingResultDao.saveResults(sampleId, matched);
@@ -108,6 +111,8 @@ public class MatchingController {
         }
         request.setAttribute("matched", matched);
         request.setAttribute("sample", sampleDao.findById(sampleId));
+        request.setAttribute("patientProfile", profile);
+        request.setAttribute("warfarinDoseSummary", doseSummary);
         request.getRequestDispatcher("/views/matching_index_search.jsp").forward(request, response);
     }
 
@@ -130,9 +135,13 @@ public class MatchingController {
             return;
         }
         List<VariantCore> variants = annovarDao.findAnnotationsBySampleId(sampleId);
-        applyWarfarinDose(sampleId, matched, variants);
+        PatientProfile profile = patientProfileDao.findBySampleId(sampleId);
+        boolean warfarinMatched = applyWarfarinDose(profile, matched, variants);
+        WarfarinDoseSummary doseSummary = dosageCalculatorService.buildWarfarinDoseSummary(profile, variants, warfarinMatched);
         request.setAttribute("matched", matched);
         request.setAttribute("sample", sampleDao.findById(sampleId));
+        request.setAttribute("patientProfile", profile);
+        request.setAttribute("warfarinDoseSummary", doseSummary);
         request.getRequestDispatcher("/views/matching_result.jsp").forward(request, response);
     }
 
@@ -339,11 +348,11 @@ public class MatchingController {
         response.sendRedirect("matching?sampleId=" + sampleId);
     }
 
-    private void applyWarfarinDose(int sampleId, List<MatchedDrugLabel> matched, List<VariantCore> variants) {
+    private boolean applyWarfarinDose(PatientProfile profile, List<MatchedDrugLabel> matched, List<VariantCore> variants) {
         if (matched == null || matched.isEmpty()) {
-            return;
+            return false;
         }
-        PatientProfile profile = patientProfileDao.findBySampleId(sampleId);
+        boolean warfarinMatched = false;
         for (MatchedDrugLabel item : matched) {
             if (item == null || item.getName() == null) {
                 continue;
@@ -351,9 +360,11 @@ public class MatchingController {
             if (!item.getName().toLowerCase(Locale.ROOT).contains("warfarin")) {
                 continue;
             }
+            warfarinMatched = true;
             Double dose = dosageCalculatorService.calculateWarfarinDose(profile, variants);
             item.setCalculatedDose(dose);
         }
+        return warfarinMatched;
     }
 
     private Integer parseInteger(String raw) {
