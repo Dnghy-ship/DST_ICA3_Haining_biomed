@@ -218,6 +218,61 @@ create table sample
     uploaded_by text null
 );
 
+create table variant_core
+(
+    id int auto_increment
+        primary key,
+    sample_id int not null,
+    chr varchar(64) not null,
+    start_pos varchar(64) not null,
+    end_pos varchar(64) not null,
+    ref_allele varchar(255) null,
+    alt_allele varchar(255) null,
+    constraint fk_variant_core_sample
+        foreign key (sample_id) references sample (id)
+            on delete cascade
+);
+
+create table variant_annotation
+(
+    variant_id int not null
+        primary key,
+    gene_symbol varchar(1024) null,
+    acmg_classification varchar(255) null,
+    constraint fk_variant_annotation_variant
+        foreign key (variant_id) references variant_core (id)
+            on delete cascade
+);
+
+create table variant_bio_details
+(
+    variant_id int not null
+        primary key,
+    raw_details json not null,
+    constraint fk_variant_bio_details_variant
+        foreign key (variant_id) references variant_core (id)
+            on delete cascade
+);
+
+create index idx_variant_core_sample_id_btree
+    on variant_core (sample_id);
+
+create index idx_variant_annotation_gene_symbol
+    on variant_annotation (gene_symbol(191));
+
+create table matching_result
+(
+    id int auto_increment
+        primary key,
+    sample_id int not null,
+    drug_label_id varchar(100) not null,
+    score int default 0 null,
+    recommendation_level varchar(20) null,
+    matched_genes text null,
+    created_at datetime not null,
+    index idx_matching_result_sample (sample_id)
+);
+
 create table patient_profile
 (
     id int auto_increment

@@ -28,6 +28,7 @@ import javax.servlet.http.Part;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -82,7 +83,7 @@ public class MatchingController {
     public void matching(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String sampleIdParameter = request.getParameter("sampleId");
         if (sampleIdParameter == null) {
-            request.getRequestDispatcher("/views/samples.jsp").forward(request, response);
+            response.sendRedirect("samples");
             return;
         }
         Integer sampleId = null;
@@ -322,15 +323,27 @@ public class MatchingController {
             return;
         }
         Part requestPart = request.getPart("annovar");
-        if (requestPart == null) {
+        if (requestPart == null || requestPart.getSize() <= 0) {
             request.setAttribute("validateError", "annovar output file can not be blank");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
             return;
         }
-        InputStream inputStream = requestPart.getInputStream();
-        byte[] bytes = inputStream.readAllBytes();
-        String content = new String(bytes);
+        String content;
+        try (InputStream inputStream = requestPart.getInputStream()) {
+            byte[] bytes = inputStream.readAllBytes();
+            if (bytes.length == 0) {
+                request.setAttribute("validateError", "annovar output file can not be blank");
+                request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+                return;
+            }
+            content = new String(bytes, StandardCharsets.UTF_8);
+        }
         int sampleId = sampleDao.save(uploadedBy);
+        if (sampleId <= 0) {
+            request.setAttribute("validateError", "Failed to create sample record");
+            request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+            return;
+        }
         PatientProfile profile = new PatientProfile();
         profile.setSampleId(sampleId);
         profile.setAge(age);
@@ -339,7 +352,12 @@ public class MatchingController {
         profile.setGender(gender);
         patientProfileDao.save(profile);
         try {
-            annovarDao.save(sampleId, content);
+            boolean saved = annovarDao.save(sampleId, content);
+            if (!saved) {
+                request.setAttribute("validateError", "Failed to save variant data for this sample");
+                request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
+                return;
+            }
         } catch (ArrayIndexOutOfBoundsException e) {
             request.setAttribute("validateError", "annovar output file is invalid");
             request.getRequestDispatcher("/views/matching_index_error.jsp").forward(request, response);
