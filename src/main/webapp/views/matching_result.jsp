@@ -77,7 +77,7 @@
             left: 0;
             top: 0;
             background: #ffffff;
-            z-index: 1;
+            z-index: 0;
             pointer-events: none;
         }
         .clinical-pdf-preview-wrap {
@@ -552,14 +552,18 @@
         var waitForLayoutReady = function (root) {
             return new Promise(function (resolve) {
                 requestAnimationFrame(function () {
-                    root.getBoundingClientRect();
-                    requestAnimationFrame(resolve);
+                    requestAnimationFrame(function () {
+                        resolve(root.getBoundingClientRect());
+                    });
                 });
             });
         };
 
         var waitForExportReady = function (root) {
-            return Promise.all([waitForFontsReady(), waitForImagesReady(root, 8000), waitForLayoutReady(root)]);
+            return Promise.all([waitForFontsReady(), waitForImagesReady(root, 8000), waitForLayoutReady(root)])
+                .then(function (results) {
+                    return results[2];
+                });
         };
 
         var getExportErrorMessage = function (error) {
@@ -642,10 +646,10 @@
             document.body.style.overflow = "hidden";
 
             waitForExportReady(pendingExportClone)
-                .then(function () {
+                .then(function (layoutRect) {
                     var qualityPreset = getQualityPreset();
-                    var exportWidth = pendingExportRoot.scrollWidth || A4_CONTENT_WIDTH_PX;
-                    var exportHeight = pendingExportRoot.scrollHeight || pendingExportClone.scrollHeight || 0;
+                    var exportWidth = Math.ceil(layoutRect.width) || pendingExportRoot.scrollWidth || A4_CONTENT_WIDTH_PX;
+                    var exportHeight = Math.ceil(layoutRect.height) || pendingExportRoot.scrollHeight || pendingExportClone.scrollHeight || 0;
                     var options = {
                         margin: [10, 10, 10, 10],
                         filename: buildFileName(),
