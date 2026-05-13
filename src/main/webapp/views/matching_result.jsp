@@ -73,11 +73,11 @@
             page-break-inside: avoid;
         }
         .clinical-pdf-export-root {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             background: #ffffff;
-            z-index: 0;
+            z-index: 1;
             pointer-events: none;
         }
         .clinical-pdf-preview-wrap {
@@ -549,8 +549,17 @@
             });
         };
 
+        var waitForLayoutReady = function (root) {
+            return new Promise(function (resolve) {
+                requestAnimationFrame(function () {
+                    root.getBoundingClientRect();
+                    requestAnimationFrame(resolve);
+                });
+            });
+        };
+
         var waitForExportReady = function (root) {
-            return Promise.all([waitForFontsReady(), waitForImagesReady(root, 8000)]);
+            return Promise.all([waitForFontsReady(), waitForImagesReady(root, 8000), waitForLayoutReady(root)]);
         };
 
         var getExportErrorMessage = function (error) {
@@ -561,6 +570,13 @@
                 return "Export failed due to cross-origin images. Please ensure images are accessible.";
             }
             return "Unable to export clinical report right now. Please try again.";
+        };
+
+        var getPageScrollOffset = function () {
+            return {
+                x: window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0,
+                y: window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+            };
         };
 
         $("#clinicalReportPdfPreviewModal").on("hidden.bs.modal", function () {
@@ -603,10 +619,13 @@
                 return;
             }
 
+            var exportScroll = getPageScrollOffset();
             var exportRoot = document.createElement("div");
             exportRoot.id = "clinicalReportPdfExportRoot";
             exportRoot.className = "clinical-pdf-export-root";
             exportRoot.style.width = A4_CONTENT_WIDTH_PX + "px";
+            exportRoot.style.left = exportScroll.x + "px";
+            exportRoot.style.top = exportScroll.y + "px";
             pendingExportRoot = exportRoot;
             pendingExportClone.style.margin = "0";
             exportRoot.appendChild(pendingExportClone);
@@ -625,6 +644,8 @@
             waitForExportReady(pendingExportClone)
                 .then(function () {
                     var qualityPreset = getQualityPreset();
+                    var exportWidth = pendingExportRoot.scrollWidth || A4_CONTENT_WIDTH_PX;
+                    var exportHeight = pendingExportRoot.scrollHeight || pendingExportClone.scrollHeight || 0;
                     var options = {
                         margin: [10, 10, 10, 10],
                         filename: buildFileName(),
@@ -633,9 +654,10 @@
                             scale: qualityPreset.scale,
                             useCORS: true,
                             backgroundColor: "#ffffff",
-                            scrollX: 0,
-                            scrollY: 0,
-                            windowWidth: A4_CONTENT_WIDTH_PX
+                            scrollX: -exportScroll.x,
+                            scrollY: -exportScroll.y,
+                            windowWidth: exportWidth,
+                            windowHeight: exportHeight
                         },
                         jsPDF: {unit: "mm", format: "a4", orientation: "portrait", compress: true},
                         pagebreak: {mode: ["css", "legacy"], avoid: ".pdf-avoid-break"}
