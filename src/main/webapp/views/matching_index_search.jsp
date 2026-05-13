@@ -666,8 +666,6 @@
                             scale: qualityPreset.scale,
                             useCORS: true,
                             backgroundColor: "#ffffff",
-                            scrollX: -exportScroll.x,
-                            scrollY: -exportScroll.y,
                             windowWidth: exportWidth,
                             windowHeight: exportHeight
                         },
