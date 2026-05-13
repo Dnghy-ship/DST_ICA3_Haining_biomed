@@ -59,6 +59,11 @@ public class MatchingController {
     private static final Pattern ACMG_BENIGN = Pattern.compile("\\bBENIGN\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
     private static final String BENIGN_SYNONYMOUS_SNV = "synonymous snv";
+    private static final int MAX_GENE_MATCH_SCORE = 3;
+    private static final int GUIDELINE_RECOMMENDATION_SCORE = 2;
+    private static final int GUIDELINE_BASE_SCORE = 1;
+    private static final int STRONG_RECOMMENDATION_THRESHOLD = 8;
+    private static final int MODERATE_RECOMMENDATION_THRESHOLD = 4;
 
     private SampleDao sampleDao = new SampleDao();
     private AnnovarDao annovarDao = new AnnovarDao();
@@ -216,7 +221,7 @@ public class MatchingController {
     }
 
     private int calculateGeneMatchScore(int matchedGeneCount) {
-        return Math.min(matchedGeneCount, 3);
+        return Math.min(matchedGeneCount, MAX_GENE_MATCH_SCORE);
     }
 
     private int calculateVariantEvidenceScore(Set<String> matchedGenes, Map<String, Integer> variantEvidenceScores) {
@@ -249,10 +254,10 @@ public class MatchingController {
     }
 
     private String getRecommendationLevel(int evidenceScore) {
-        if (evidenceScore >= 8) {
+        if (evidenceScore >= STRONG_RECOMMENDATION_THRESHOLD) {
             return "Strong";
         }
-        if (evidenceScore >= 4) {
+        if (evidenceScore >= MODERATE_RECOMMENDATION_THRESHOLD) {
             return "Moderate";
         }
         return "Optional";
@@ -322,7 +327,7 @@ public class MatchingController {
             if (drugId == null || drugId.isBlank()) {
                 continue;
             }
-            int score = guideline.isRecommendation() ? 2 : 1;
+            int score = guideline.isRecommendation() ? GUIDELINE_RECOMMENDATION_SCORE : GUIDELINE_BASE_SCORE;
             scores.merge(drugId, score, Math::max);
         }
         return scores;
