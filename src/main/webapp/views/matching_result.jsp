@@ -74,10 +74,10 @@
         }
         .clinical-pdf-export-root {
             position: fixed;
-            left: -10000px;
+            left: 0;
             top: 0;
             background: #ffffff;
-            z-index: -1;
+            z-index: 0;
             pointer-events: none;
         }
         .clinical-pdf-preview-wrap {
