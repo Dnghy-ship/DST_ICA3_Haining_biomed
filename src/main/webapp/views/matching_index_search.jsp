@@ -142,23 +142,6 @@
                             <div class="alert alert-primary mb-2" role="alert">
                                 <strong>Calculated Starting Dose: ${warfarinDoseSummary.formattedDose} mg/week</strong>
                             </div>
-                            <div class="mb-1">
-                                <strong>Genotype Flags:</strong>
-                                <c:choose>
-                                    <c:when test="${warfarinDoseSummary.hasVkorc1 or warfarinDoseSummary.hasCyp2c9}">
-                                        <c:if test="${warfarinDoseSummary.hasVkorc1}">
-                                            <span class="badge badge-danger ml-1">VKORC1</span>
-                                        </c:if>
-                                        <c:if test="${warfarinDoseSummary.hasCyp2c9}">
-                                            <span class="badge badge-danger ml-1">CYP2C9</span>
-                                        </c:if>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="text-muted ml-1">None detected</span>
-                                    </c:otherwise>
-                                </c:choose>
-                            </div>
-                            <div class="mb-1"><strong>Gene Penalty:</strong> ${warfarinDoseSummary.formattedGenePenalty}</div>
                             <div class="text-muted small">${warfarinDoseSummary.statusMessage}</div>
                         </c:when>
                         <c:otherwise>
@@ -319,16 +302,6 @@
                         <c:choose>
                             <c:when test="${warfarinDoseSummary != null && warfarinDoseSummary.weeklyDose != null}">
                                 <div><strong>Calculated Starting Dose:</strong> ${warfarinDoseSummary.formattedDose} mg/week</div>
-                                <div><strong>Genotype Flags:</strong>
-                                    <c:choose>
-                                        <c:when test="${warfarinDoseSummary.hasVkorc1 or warfarinDoseSummary.hasCyp2c9}">
-                                            <c:if test="${warfarinDoseSummary.hasVkorc1}"> VKORC1</c:if>
-                                            <c:if test="${warfarinDoseSummary.hasCyp2c9}"> CYP2C9</c:if>
-                                        </c:when>
-                                        <c:otherwise> None detected</c:otherwise>
-                                    </c:choose>
-                                </div>
-                                <div><strong>Gene Penalty:</strong> ${warfarinDoseSummary.formattedGenePenalty}</div>
                                 <div class="text-muted">${warfarinDoseSummary.statusMessage}</div>
                             </c:when>
                             <c:otherwise>
