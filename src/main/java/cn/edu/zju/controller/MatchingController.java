@@ -64,6 +64,7 @@ public class MatchingController {
     private static final int GUIDELINE_BASE_SCORE = 1;
     private static final int STRONG_RECOMMENDATION_THRESHOLD = 8;
     private static final int MODERATE_RECOMMENDATION_THRESHOLD = 4;
+    private static final Set<String> INVALID_GENE_TOKENS = Set.of("NONE", "N/A", "NA", "NULL", "UNKNOWN", "-");
 
     private SampleDao sampleDao = new SampleDao();
     private AnnovarDao annovarDao = new AnnovarDao();
@@ -482,7 +483,10 @@ public class MatchingController {
         if (alleleIndex >= 0) {
             normalized = normalized.substring(0, alleleIndex);
         }
-        return normalized.isEmpty() ? null : normalized;
+        if (normalized.isEmpty() || INVALID_GENE_TOKENS.contains(normalized)) {
+            return null;
+        }
+        return normalized;
     }
 
     private void addNormalizedGene(String value, Set<String> genes) {
