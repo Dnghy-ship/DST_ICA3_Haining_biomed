@@ -186,7 +186,7 @@ public class MatchingController {
                 int variantEvidenceScore = calculateVariantEvidenceScore(matchedGenes, variantEvidenceScores);
                 int guidelineScore = calculateGuidelineScore(drugLabel, guidelineScores);
                 int score = calculateTotalScore(geneMatchScore, variantEvidenceScore, labelEvidenceScore, guidelineScore);
-                String recLevel = getRecommendationLevel(labelEvidenceScore);
+                String recLevel = getRecommendationLevel(score);
                 matchedLabels.add(new MatchedDrugLabel(drugLabel, score, recLevel, new ArrayList<>(matchedGenes)));
             }
         }
