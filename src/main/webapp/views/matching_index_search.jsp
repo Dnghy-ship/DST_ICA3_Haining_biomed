@@ -493,7 +493,7 @@
         var buildFileName = function () {
             var sampleId = exportButton.getAttribute("data-sample-id") || "unknown";
             var dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-            return "clinical_report_sample_" + sampleId + "_" + dateStamp + "_v1.pdf";
+            return "clinical_report_sample_" + sampleId + "_" + dateStamp + ".pdf";
         };
 
         var buildPdfMetadata = function () {
