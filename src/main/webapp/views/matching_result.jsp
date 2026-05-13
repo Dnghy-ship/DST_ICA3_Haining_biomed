@@ -74,8 +74,6 @@
         }
         .clinical-pdf-export-root {
             position: absolute;
-            left: 0;
-            top: 0;
             background: #ffffff;
             z-index: 0;
             pointer-events: none;
@@ -649,7 +647,7 @@
                 .then(function (layoutRect) {
                     var qualityPreset = getQualityPreset();
                     var exportWidth = Math.ceil(layoutRect.width) || pendingExportClone.scrollWidth || pendingExportRoot.scrollWidth || A4_CONTENT_WIDTH_PX;
-                    var exportHeight = Math.ceil(layoutRect.height) || pendingExportClone.scrollHeight || pendingExportRoot.scrollHeight || 0;
+                    var exportHeight = Math.ceil(layoutRect.height) || pendingExportClone.scrollHeight || pendingExportRoot.scrollHeight || 1;
                     var options = {
                         margin: [10, 10, 10, 10],
                         filename: buildFileName(),
