@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class AnnovarDao extends BaseDao {
@@ -32,8 +33,9 @@ public class AnnovarDao extends BaseDao {
     private static final int ACMG_CLASSIFICATION_INDEX = 125;
     private static final int BATCH_SIZE = 1000;
 
-    public void save(int sampleId, String content) {
+    public boolean save(int sampleId, String content) {
         String[] lines = content.split("\\r|\\n");
+        AtomicBoolean success = new AtomicBoolean(false);
         DBUtils.execSQL(connection -> {
             String insertCore = "INSERT INTO variant_core (sample_id, chr, start_pos, end_pos, ref_allele, alt_allele) VALUES (?, ?, ?, ?, ?, ?)";
             String insertAnnotation = "INSERT INTO variant_annotation (variant_id, gene_symbol, acmg_classification) VALUES (?, ?, ?)";
@@ -85,6 +87,7 @@ public class AnnovarDao extends BaseDao {
                 annotationPs.executeBatch();
                 bioDetailsPs.executeBatch();
                 connection.commit();
+                success.set(true);
             } catch (SQLException e) {
                 try {
                     connection.rollback();
@@ -92,8 +95,17 @@ public class AnnovarDao extends BaseDao {
                     log.error("Rollback failed when saving variant data for sample {}", sampleId, rollbackException);
                 }
                 log.error("Failed to save variant data for sample {}", sampleId, e);
+            } catch (RuntimeException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    log.error("Rollback failed when saving variant data for sample {}", sampleId, rollbackException);
+                }
+                log.error("Failed to save variant data for sample {} due to runtime error", sampleId, e);
+                throw e;
             }
         });
+        return success.get();
     }
 
     public long countAll() {
