@@ -646,8 +646,18 @@
             waitForExportReady(pendingExportClone)
                 .then(function (layoutRect) {
                     var qualityPreset = getQualityPreset();
-                    var exportWidth = Math.ceil(layoutRect.width) || pendingExportClone.scrollWidth || pendingExportRoot.scrollWidth || A4_CONTENT_WIDTH_PX;
-                    var exportHeight = Math.ceil(layoutRect.height) || pendingExportClone.scrollHeight || pendingExportRoot.scrollHeight || 1;
+                    var exportWidth = Math.ceil(layoutRect.width)
+                        || pendingExportClone.scrollWidth
+                        || pendingExportClone.offsetWidth
+                        || pendingExportRoot.scrollWidth
+                        || pendingExportRoot.offsetWidth
+                        || A4_CONTENT_WIDTH_PX;
+                    var exportHeight = Math.ceil(layoutRect.height)
+                        || pendingExportClone.scrollHeight
+                        || pendingExportClone.offsetHeight
+                        || pendingExportRoot.scrollHeight
+                        || pendingExportRoot.offsetHeight
+                        || (TEMPLATE_PADDING_PX * 2);
                     var options = {
                         margin: [10, 10, 10, 10],
                         filename: buildFileName(),
