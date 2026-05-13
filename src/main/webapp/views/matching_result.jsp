@@ -574,13 +574,6 @@
             return "Unable to export clinical report right now. Please try again.";
         };
 
-        var getPageScrollOffset = function () {
-            return {
-                x: window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0,
-                y: window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
-            };
-        };
-
         $("#clinicalReportPdfPreviewModal").on("hidden.bs.modal", function () {
             if (isExporting) {
                 return;
@@ -621,13 +614,12 @@
                 return;
             }
 
-            var exportScroll = getPageScrollOffset();
             var exportRoot = document.createElement("div");
             exportRoot.id = "clinicalReportPdfExportRoot";
             exportRoot.className = "clinical-pdf-export-root";
             exportRoot.style.width = A4_CONTENT_WIDTH_PX + "px";
-            exportRoot.style.left = exportScroll.x + "px";
-            exportRoot.style.top = exportScroll.y + "px";
+            exportRoot.style.left = "0";
+            exportRoot.style.top = "0";
             pendingExportRoot = exportRoot;
             pendingExportClone.style.margin = "0";
             exportRoot.appendChild(pendingExportClone);
@@ -646,18 +638,22 @@
             waitForExportReady(pendingExportClone)
                 .then(function (layoutRect) {
                     var qualityPreset = getQualityPreset();
-                    var exportWidth = Math.ceil(layoutRect.width)
-                        || pendingExportClone.scrollWidth
-                        || pendingExportClone.offsetWidth
-                        || pendingExportRoot.scrollWidth
-                        || pendingExportRoot.offsetWidth
-                        || A4_CONTENT_WIDTH_PX;
-                    var exportHeight = Math.ceil(layoutRect.height)
-                        || pendingExportClone.scrollHeight
-                        || pendingExportClone.offsetHeight
-                        || pendingExportRoot.scrollHeight
-                        || pendingExportRoot.offsetHeight
-                        || (TEMPLATE_PADDING_PX * 2);
+                    var layoutWidth = Math.ceil(layoutRect.width || 0);
+                    var layoutHeight = Math.ceil(layoutRect.height || 0);
+                    var exportWidth = layoutWidth > 0
+                        ? layoutWidth
+                        : (pendingExportClone.scrollWidth
+                            || pendingExportClone.offsetWidth
+                            || pendingExportRoot.scrollWidth
+                            || pendingExportRoot.offsetWidth
+                            || A4_CONTENT_WIDTH_PX);
+                    var exportHeight = layoutHeight > 0
+                        ? layoutHeight
+                        : (pendingExportClone.scrollHeight
+                            || pendingExportClone.offsetHeight
+                            || pendingExportRoot.scrollHeight
+                            || pendingExportRoot.offsetHeight
+                            || (TEMPLATE_PADDING_PX * 2));
                     var options = {
                         margin: [10, 10, 10, 10],
                         filename: buildFileName(),
