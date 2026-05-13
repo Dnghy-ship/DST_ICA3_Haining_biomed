@@ -1,5 +1,6 @@
 package cn.edu.zju.controller;
 
+import cn.edu.zju.bean.DosingGuideline;
 import cn.edu.zju.bean.DrugLabel;
 import cn.edu.zju.bean.MatchedDrugLabel;
 import cn.edu.zju.bean.PatientProfile;
@@ -9,6 +10,7 @@ import cn.edu.zju.bean.VariantAnnotation;
 import cn.edu.zju.bean.VariantBioDetails;
 import cn.edu.zju.bean.VariantCore;
 import cn.edu.zju.dao.AnnovarDao;
+import cn.edu.zju.dao.DosingGuidelineDao;
 import cn.edu.zju.dao.DrugLabelDao;
 import cn.edu.zju.dao.MatchingResultDao;
 import cn.edu.zju.dao.PatientProfileDao;
@@ -33,9 +35,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -48,12 +52,18 @@ public class MatchingController {
     private static final Pattern EVIDENCE_LEVEL_2A = Pattern.compile("\\b(LEVEL\\s*2A|2A)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern EVIDENCE_LEVEL_2B = Pattern.compile("\\b(LEVEL\\s*2B|2B)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern EVIDENCE_LEVEL_3 = Pattern.compile("\\bLEVEL\\s*3\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACMG_LIKELY_PATHOGENIC = Pattern.compile("LIKELY\\s*PATHOGENIC", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACMG_PATHOGENIC = Pattern.compile("\\bPATHOGENIC\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACMG_UNCERTAIN = Pattern.compile("UNCERTAIN|VUS", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACMG_LIKELY_BENIGN = Pattern.compile("LIKELY\\s*BENIGN", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACMG_BENIGN = Pattern.compile("\\bBENIGN\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
     private static final String BENIGN_SYNONYMOUS_SNV = "synonymous snv";
 
     private SampleDao sampleDao = new SampleDao();
     private AnnovarDao annovarDao = new AnnovarDao();
     private DrugLabelDao drugLabelDao = new DrugLabelDao();
+    private DosingGuidelineDao dosingGuidelineDao = new DosingGuidelineDao();
     private MatchingResultDao matchingResultDao = new MatchingResultDao();
     private PatientProfileDao patientProfileDao = new PatientProfileDao();
     private DosageCalculatorService dosageCalculatorService = new DosageCalculatorService();
@@ -102,7 +112,9 @@ public class MatchingController {
             return;
         }
         List<DrugLabel> drugLabels = drugLabelDao.findAll();
-        List<MatchedDrugLabel> matched = doMatch(drugLabels, patientGenes);
+        Map<String, Integer> guidelineScores = buildGuidelineScoreByDrugId(dosingGuidelineDao.findAll());
+        Map<String, Integer> variantEvidenceScores = buildVariantEvidenceScores(variants);
+        List<MatchedDrugLabel> matched = doMatch(drugLabels, patientGenes, variantEvidenceScores, guidelineScores);
         PatientProfile profile = patientProfileDao.findBySampleId(sampleId);
         boolean warfarinMatched = applyWarfarinDose(profile, matched, variants);
         WarfarinDoseSummary doseSummary = dosageCalculatorService.buildWarfarinDoseSummary(profile, variants, warfarinMatched);
@@ -148,7 +160,10 @@ public class MatchingController {
         request.getRequestDispatcher("/views/matching_result.jsp").forward(request, response);
     }
 
-    private List<MatchedDrugLabel> doMatch(List<DrugLabel> drugLabels, Set<String> patientGenes) {
+    private List<MatchedDrugLabel> doMatch(List<DrugLabel> drugLabels,
+                                           Set<String> patientGenes,
+                                           Map<String, Integer> variantEvidenceScores,
+                                           Map<String, Integer> guidelineScores) {
         List<MatchedDrugLabel> matchedLabels = new ArrayList<>();
         if (drugLabels == null || drugLabels.isEmpty() || patientGenes == null || patientGenes.isEmpty()) {
             return matchedLabels;
@@ -157,33 +172,28 @@ public class MatchingController {
             if (drugLabel == null) {
                 continue;
             }
+            String labelSearchText = buildLabelSearchText(drugLabel);
             LabelGeneInfo geneInfo = extractLabelGeneInfo(drugLabel);
             LinkedHashSet<String> matchedGenes = new LinkedHashSet<>();
-            if (!geneInfo.genes.isEmpty()) {
-                for (String patientGene : patientGenes) {
-                    if (geneInfo.genes.contains(patientGene)) {
-                        matchedGenes.add(patientGene);
-                    }
-                }
-            } else {
-                String labelText = buildLabelSearchText(drugLabel);
-                for (String patientGene : patientGenes) {
-                    if (containsGeneToken(labelText, patientGene)) {
-                        matchedGenes.add(patientGene);
-                    }
+            for (String patientGene : patientGenes) {
+                if (geneInfo.genes.contains(patientGene) || containsGeneToken(labelSearchText, patientGene)) {
+                    matchedGenes.add(patientGene);
                 }
             }
             if (!matchedGenes.isEmpty()) {
-                int evidenceScore = calculateEvidenceScore(buildLabelSearchText(drugLabel));
-                int score = calculateTotalScore(drugLabel, evidenceScore, matchedGenes.size(), geneInfo.structured);
-                String recLevel = getRecommendationLevel(evidenceScore);
+                int geneMatchScore = calculateGeneMatchScore(matchedGenes.size());
+                int labelEvidenceScore = calculateLabelEvidenceScore(labelSearchText);
+                int variantEvidenceScore = calculateVariantEvidenceScore(matchedGenes, variantEvidenceScores);
+                int guidelineScore = calculateGuidelineScore(drugLabel, guidelineScores);
+                int score = calculateTotalScore(geneMatchScore, variantEvidenceScore, labelEvidenceScore, guidelineScore);
+                String recLevel = getRecommendationLevel(labelEvidenceScore);
                 matchedLabels.add(new MatchedDrugLabel(drugLabel, score, recLevel, new ArrayList<>(matchedGenes)));
             }
         }
         return matchedLabels;
     }
 
-    private int calculateEvidenceScore(String evidenceText) {
+    private int calculateLabelEvidenceScore(String evidenceText) {
         if (evidenceText == null || evidenceText.isBlank()) {
             return 0;
         }
@@ -205,19 +215,37 @@ public class MatchingController {
         return 0;
     }
 
-    private int calculateTotalScore(DrugLabel label,
-                                    int evidenceScore,
-                                    int matchedGeneCount,
-                                    boolean structuredGenes) {
-        int score = evidenceScore > 0 ? evidenceScore : 1;
-        score += Math.min(matchedGeneCount, 3);
-        if (label != null && label.isDosingInformation()) {
-            score += 2;
+    private int calculateGeneMatchScore(int matchedGeneCount) {
+        return Math.min(matchedGeneCount, 3);
+    }
+
+    private int calculateVariantEvidenceScore(Set<String> matchedGenes, Map<String, Integer> variantEvidenceScores) {
+        if (matchedGenes == null || matchedGenes.isEmpty() || variantEvidenceScores == null || variantEvidenceScores.isEmpty()) {
+            return 0;
         }
-        if (structuredGenes) {
-            score += 2;
+        int score = 0;
+        for (String gene : matchedGenes) {
+            score = Math.max(score, variantEvidenceScores.getOrDefault(gene, 0));
         }
         return score;
+    }
+
+    private int calculateGuidelineScore(DrugLabel label, Map<String, Integer> guidelineScores) {
+        if (label == null || guidelineScores == null || guidelineScores.isEmpty()) {
+            return 0;
+        }
+        String drugId = label.getDrugId();
+        if (drugId == null || drugId.isBlank()) {
+            return 0;
+        }
+        return guidelineScores.getOrDefault(drugId, 0);
+    }
+
+    private int calculateTotalScore(int geneMatchScore,
+                                    int variantEvidenceScore,
+                                    int labelEvidenceScore,
+                                    int guidelineScore) {
+        return geneMatchScore + variantEvidenceScore + labelEvidenceScore + guidelineScore;
     }
 
     private String getRecommendationLevel(int evidenceScore) {
@@ -228,6 +256,76 @@ public class MatchingController {
             return "Moderate";
         }
         return "Optional";
+    }
+
+    private Map<String, Integer> buildVariantEvidenceScores(List<VariantCore> variants) {
+        Map<String, Integer> scores = new HashMap<>();
+        if (variants == null || variants.isEmpty()) {
+            return scores;
+        }
+        for (VariantCore variant : variants) {
+            if (variant == null || variant.getAnnotation() == null) {
+                continue;
+            }
+            VariantAnnotation annotation = variant.getAnnotation();
+            String geneSymbol = annotation.getGeneSymbol();
+            if (geneSymbol == null || geneSymbol.isBlank()) {
+                continue;
+            }
+            int score = scoreVariantClassification(annotation.getAcmgClassification());
+            if (score <= 0) {
+                continue;
+            }
+            String[] splitGenes = geneSymbol.split("[,;]");
+            for (String splitGene : splitGenes) {
+                String normalized = normalizeGene(splitGene);
+                if (normalized != null) {
+                    scores.merge(normalized, score, Math::max);
+                }
+            }
+        }
+        return scores;
+    }
+
+    private int scoreVariantClassification(String classification) {
+        if (classification == null || classification.isBlank()) {
+            return 0;
+        }
+        if (ACMG_LIKELY_PATHOGENIC.matcher(classification).find()) {
+            return 2;
+        }
+        if (ACMG_PATHOGENIC.matcher(classification).find()) {
+            return 3;
+        }
+        if (ACMG_UNCERTAIN.matcher(classification).find()) {
+            return 1;
+        }
+        if (ACMG_LIKELY_BENIGN.matcher(classification).find()) {
+            return 0;
+        }
+        if (ACMG_BENIGN.matcher(classification).find()) {
+            return 0;
+        }
+        return 0;
+    }
+
+    private Map<String, Integer> buildGuidelineScoreByDrugId(List<DosingGuideline> guidelines) {
+        Map<String, Integer> scores = new HashMap<>();
+        if (guidelines == null || guidelines.isEmpty()) {
+            return scores;
+        }
+        for (DosingGuideline guideline : guidelines) {
+            if (guideline == null) {
+                continue;
+            }
+            String drugId = guideline.getDrugId();
+            if (drugId == null || drugId.isBlank()) {
+                continue;
+            }
+            int score = guideline.isRecommendation() ? 2 : 1;
+            scores.merge(drugId, score, Math::max);
+        }
+        return scores;
     }
 
     private Set<String> collectPatientGenesExcludingBenignVariants(List<VariantCore> variants) {
@@ -387,9 +485,15 @@ public class MatchingController {
     }
 
     private void addNormalizedGene(String value, Set<String> genes) {
-        String normalized = normalizeGene(value);
-        if (normalized != null) {
-            genes.add(normalized);
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        String[] splitGenes = value.split("[,;]");
+        for (String splitGene : splitGenes) {
+            String normalized = normalizeGene(splitGene);
+            if (normalized != null) {
+                genes.add(normalized);
+            }
         }
     }
 

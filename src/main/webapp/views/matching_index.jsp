@@ -63,7 +63,7 @@
                 <ol class="mb-0 pl-3">
                     <li>Upload ANNOVAR output (.tsv).</li>
                     <li>System filters variants via ACMG criteria.</li>
-                    <li>Results are matched against PharmGKB and scored by evidence level.</li>
+                    <li>Results are matched against PharmGKB and scored by gene match, variant evidence, label evidence, and guidelines.</li>
                 </ol>
             </div>
             <div class="table-responsive">
