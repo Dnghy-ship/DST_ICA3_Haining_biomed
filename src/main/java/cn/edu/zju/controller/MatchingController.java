@@ -364,9 +364,8 @@ public class MatchingController {
 
     private LabelGeneInfo extractLabelGeneInfo(DrugLabel label) {
         Set<String> genes = new LinkedHashSet<>();
-        boolean structured = false;
         if (label == null) {
-            return new LabelGeneInfo(genes, false);
+            return new LabelGeneInfo(genes);
         }
         String raw = label.getRaw();
         if (raw != null && !raw.isBlank()) {
@@ -378,15 +377,12 @@ public class MatchingController {
                     addGenesFromKey(obj, "genes", genes);
                     addGenesFromKey(obj, "geneSymbols", genes);
                     addGeneFromField(obj, "geneSymbol", genes);
-                    if (!genes.isEmpty()) {
-                        structured = true;
-                    }
                 }
             } catch (Exception e) {
                 log.debug("Failed to parse raw drug label JSON for id={}", label.getId(), e);
             }
         }
-        return new LabelGeneInfo(genes, structured);
+        return new LabelGeneInfo(genes);
     }
 
     private void addGenesFromKey(JsonObject obj, String key, Set<String> genes) {
@@ -504,11 +500,9 @@ public class MatchingController {
 
     private static class LabelGeneInfo {
         private final Set<String> genes;
-        private final boolean structured;
 
-        private LabelGeneInfo(Set<String> genes, boolean structured) {
+        private LabelGeneInfo(Set<String> genes) {
             this.genes = genes;
-            this.structured = structured;
         }
     }
 
